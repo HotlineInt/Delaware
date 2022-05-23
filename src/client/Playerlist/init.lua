@@ -19,6 +19,12 @@ function Playerlist:Load()
 		ResetOnSpawn = false,
 	})
 
+	Playerlist:PlayerAdded(game.Players.LocalPlayer)
+
+	Players.PlayerAdded:Connect(function(player)
+		Playerlist:PlayerAdded(player)
+	end)
+
 	self.List = self.Holder:AddElement(List, {})
 	self.Holder:Mount(Players.LocalPlayer.PlayerGui)
 end
