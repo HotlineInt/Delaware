@@ -7,8 +7,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Packages = ReplicatedStorage:WaitForChild("Packages")
 
-local ConsoleComponent = require(script.Parent.Console)
-local ConsoleLog = require(script.Parent.ConsoleLog)
+local ConsoleComponent = require(script.Console)
+local ConsoleLog = require(script.ConsoleLog)
 local CUI = require(Packages.CUI)
 
 local Console = {
