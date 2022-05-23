@@ -21,7 +21,7 @@ return function(Props)
 		BackgroundColor3 = Color3.new(),
 		BackgroundTransparency = 0.2,
 		Font = Enum.Font.Code,
-		Size = UDim2.new(1, 0, 32, 0),
+		Size = UDim2.new(1, 0, 0, 32),
 		TextSize = 15,
 		Text = Message,
 		TextXAlignment = Enum.TextXAlignment.Left,
