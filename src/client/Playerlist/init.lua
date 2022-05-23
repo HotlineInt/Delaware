@@ -32,4 +32,8 @@ function Playerlist:PlayerAdded(Player: Player)
 	}))
 end
 
+function Playerlist:SetEnabled(Enabled: boolean)
+	self.Holder:SetProperty("Enabled", Enabled)
+end
+
 return Playerlist
