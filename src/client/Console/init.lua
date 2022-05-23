@@ -72,7 +72,7 @@ function Console:SetEnabled(Enabled: boolean)
 		ConsoleInput:ReleaseFocus(false)
 	end
 
-	Playerlist:SetEnabled(not Enabled)
+	--Playerlist:SetEnabled(not Enabled)
 	self.Holder:SetProperty("Enabled", Enabled)
 end
 
