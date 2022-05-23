@@ -12,6 +12,8 @@ local ConsoleComponent = require(script.Console)
 local ConsoleLog = require(script.ConsoleLog)
 local CUI = require(Packages.CUI)
 
+local Playerlist = require(script.Parent.Playerlist)
+
 local Console = {
 	Holder = nil,
 }
@@ -70,6 +72,7 @@ function Console:SetEnabled(Enabled: boolean)
 		ConsoleInput:ReleaseFocus(false)
 	end
 
+	Playerlist:SetEnabled(not Enabled)
 	self.Holder:SetProperty("Enabled", Enabled)
 end
 
