@@ -21,11 +21,17 @@ return function(Props)
 		BackgroundColor3 = Color3.new(),
 		BackgroundTransparency = 0.2,
 		Font = Enum.Font.Code,
+		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 0, 32),
 		TextSize = 15,
 		Text = Message,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextStrokeTransparency = 0.5,
 		TextColor3 = Colors[InfoType],
+		[CUI.Children] = {
+			CUI:CreateElement("UIPadding", {
+				PaddingLeft = UDim.new(0, 50),
+			}),
+		},
 	})
 end

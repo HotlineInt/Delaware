@@ -4,6 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 local LogService = game:GetService("LogService")
 
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Packages = ReplicatedStorage:WaitForChild("Packages")
 
@@ -22,13 +23,26 @@ function Console:Load()
 		Enabled = false,
 	})
 	self.ConsoleFrame = self.Holder:Add(ConsoleComponent())
+	self.LogFrame = self.ConsoleFrame:Get("Logs")
+	self.ConsoleInput = self.ConsoleFrame:Get("ConsoleInput")
 
 	local Enabled = false
 
 	UserInputService.InputBegan:Connect(function(Input: InputObject)
 		if Input.KeyCode == Enum.KeyCode.F2 then
+			StarterGui:SetCore("TopbarEnabled", Enabled)
 			Enabled = not Enabled
 			Console:SetEnabled(Enabled)
+		end
+	end)
+
+	self.ConsoleInput:On("FocusLost", function(self, EnterPressed: boolean)
+		if EnterPressed then
+			-- do some console magic
+			print(string.format("> %s", self:GetProperty("Text")))
+			self:SetProperty("Text", "")
+			self.Instance:CaptureFocus()
+			print("console bs here")
 		end
 	end)
 
@@ -40,13 +54,22 @@ function Console:Load()
 end
 
 function Console:OnLog(Type: Enum, Message: string)
-	self.ConsoleFrame:Add(ConsoleLog({
+	self.LogFrame:Add(ConsoleLog({
 		InfoType = Type,
 		Message = Message,
 	}))
+	self.LogFrame:SetProperty("CanvasPosition", self.LogFrame:GetProperty("AbsoluteCanvasSize"))
 end
 
 function Console:SetEnabled(Enabled: boolean)
+	local ConsoleInput: TextBox = self.ConsoleInput.Instance
+
+	if Enabled then
+		ConsoleInput:CaptureFocus()
+	else
+		ConsoleInput:ReleaseFocus(false)
+	end
+
 	self.Holder:SetProperty("Enabled", Enabled)
 end
 
