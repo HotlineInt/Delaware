@@ -14,9 +14,9 @@ function Setting:GetValue()
 end
 
 function Setting:SetValue(NewValue: any)
-	local OldValue = Setting.Value
-	Setting.Value = NewValue
-	Setting.ChangeSignal:Fire(OldValue, NewValue)
+	local OldValue = self.Value
+	self.Value = NewValue
+	self.ChangeSignal:Fire(OldValue, NewValue)
 end
 
 return Setting

@@ -8,10 +8,11 @@ local SettingsManager = {
 	Settings = {},
 }
 
-local SettingClass = require(script.Parent.Setting)
+local SettingClass = require(script.Setting)
 
 function SettingsManager:AddSetting(Name: string, DefaultValue: any): Setting
 	local NewSetting = SettingClass.new(Name, DefaultValue)
+	print(NewSetting)
 
 	table.insert(self.Settings, NewSetting)
 
