@@ -17,7 +17,7 @@ return function()
 				--AnchorPoint = Vector2.new(0, 1),
 				--Position = UDim2.new(0, 0, 1, 0),
 				BorderSizePixel = 0,
-				ScrollbarThickness = 1,
+				ScrollBarThickness = 1,
 				ScrollingDirection = Enum.ScrollingDirection.Y,
 				Size = UDim2.new(1, 0, 0.95, 0),
 				AutomaticCanvasSize = Enum.AutomaticSize.Y,
