@@ -12,6 +12,7 @@ local ConsoleComponent = require(script.Console)
 local ConsoleLog = require(script.ConsoleLog)
 local CUI = require(Packages.CUI)
 
+local Commands = {}
 local Playerlist = require(script.Parent.Playerlist)
 
 local Console = {
@@ -30,6 +31,10 @@ function Console:Load()
 
 	local Enabled = false
 
+	for _, Command in pairs(script.Builtin:GetChildren()) do
+		table.insert(Commands, require(Command))
+	end
+
 	UserInputService.InputBegan:Connect(function(Input: InputObject)
 		if Input.KeyCode == Enum.KeyCode.F2 then
 			StarterGui:SetCore("TopbarEnabled", Enabled)
@@ -41,10 +46,25 @@ function Console:Load()
 	self.ConsoleInput:On("FocusLost", function(self, EnterPressed: boolean)
 		if EnterPressed then
 			-- do some console magic
-			print(string.format("> %s", self:GetProperty("Text")))
-			self:SetProperty("Text", "")
+			-- roblox-garbage-string-implementation sanitization
+			local InputCommand = self:GetProperty("Text")
+			-- (%s) is for whitespace detection
+			if string.match(InputCommand:sub(1, 1), "(%s)") then
+				InputCommand = InputCommand:sub(2, string.len(InputCommand))
+			end
+
 			self.Instance:CaptureFocus()
-			print("console bs here")
+			self.Instance.Text = ""
+
+			print(string.format("> %s", InputCommand))
+			for _, Command in pairs(Commands) do
+				if Command.Name == InputCommand then
+					Command:Execute(Players.LocalPlayer, InputCommand.split(" "))
+					return
+				end
+			end
+
+			warn("Invalid command provided.")
 		end
 	end)
 
