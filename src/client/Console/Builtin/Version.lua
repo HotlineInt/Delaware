@@ -5,6 +5,6 @@ return {
 	Execute = function(Runner: Player, Arguments: table)
 		local IsDev = RunService:IsStudio() and "-dev" or "-release"
 
-		return print(string.format("Game v%d%s", game.PlaceVersion, IsDev))
+		return print(string.format("Game version %d%s", game.PlaceVersion, IsDev))
 	end,
 }
