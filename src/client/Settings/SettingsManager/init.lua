@@ -26,7 +26,7 @@ function SettingsManager:GetSetting(Name: string): Setting
 		end
 	end
 
-	error("No such setting exists:", Name)
+	error("No such setting exists: " .. Name)
 end
 
 function SettingsManager:SetSetting(Name: string, NewValue: any): nil
