@@ -12,11 +12,9 @@ local ConsoleComponent = require(script.Console)
 local ConsoleLog = require(script.ConsoleLog)
 local CUI = require(Packages.CUI)
 
-local Commands = {}
-local Playerlist = require(script.Parent.Playerlist)
-
 local Console = {
 	Holder = nil,
+	Commands = {},
 }
 
 function Console:Load()
@@ -32,7 +30,7 @@ function Console:Load()
 	local Enabled = false
 
 	for _, Command in pairs(script.Builtin:GetChildren()) do
-		table.insert(Commands, require(Command))
+		table.insert(self.Commands, require(Command))
 	end
 
 	UserInputService.InputBegan:Connect(function(Input: InputObject)
@@ -40,6 +38,18 @@ function Console:Load()
 			StarterGui:SetCore("TopbarEnabled", Enabled)
 			Enabled = not Enabled
 			Console:SetEnabled(Enabled)
+		elseif Input.KeyCode == Enum.KeyCode.Tab then
+			local CurrentInput = self.ConsoleInput:GetProperty("Text")
+
+			-- ! This could be quite slow !!
+			local MatchingCommand = self:MatchingCommand(CurrentInput)
+
+			if MatchingCommand then
+				self.ConsoleInput:SetProperty("Text", MatchingCommand.Name)
+				self.ConsoleInput:SetProperty("CursorPosition", MatchingCommand.Name:len())
+				self.ConsoleInput:SetProperty("Text", self.ConsoleInput:GetProperty("Text"):gsub("\t", ""))
+				return
+			end
 		end
 	end)
 
@@ -57,7 +67,7 @@ function Console:Load()
 			self.Instance.Text = ""
 
 			print(string.format("> %s", InputCommand))
-			for _, Command in pairs(Commands) do
+			for _, Command in pairs(self.Commands) do
 				if Command.Name == InputCommand then
 					Command:Execute(Players.LocalPlayer, InputCommand.split(" "))
 					return
@@ -73,6 +83,14 @@ function Console:Load()
 	end)
 
 	self.Holder:Mount(Players.LocalPlayer.PlayerGui)
+end
+
+function Console:MatchingCommand(Input: string)
+	for _, Command in pairs(self.Commands) do
+		if string.find(Command.Name, Input) then
+			return Command.Name
+		end
+	end
 end
 
 function Console:OnLog(Type: Enum, Message: string)
