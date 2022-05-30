@@ -4,11 +4,12 @@ export type Setting = {
 	ChangeSignal: RBXScriptSignal,
 }
 
-local SettingsManager = {
-	Settings = {},
-}
-
 local SettingClass = require(script.Setting)
+local SettingsManager = {
+	Settings = {
+		SettingClass.new("cl_showfps", true),
+	},
+}
 
 function SettingsManager:AddSetting(Name: string, DefaultValue: any): Setting
 	local NewSetting = SettingClass.new(Name, DefaultValue)
