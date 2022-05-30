@@ -12,10 +12,27 @@ local ConsoleComponent = require(script.Console)
 local ConsoleLog = require(script.ConsoleLog)
 local CUI = require(Packages.CUI)
 
+local autoexec = script:FindFirstChild("autoexec")
+if autoexec then
+	autoexec = autoexec.Value
+end
+
 local Console = {
 	Holder = nil,
 	Commands = {},
 }
+
+function Console:ExecuteCommand(Name: string, Arguments: table)
+	for _, Command in pairs(Console.Commands) do
+		if Command.Name == Name then
+			Command:Execute(Players.LocalPlayer, Arguments)
+			return true
+		end
+	end
+
+	warn("Invalid command provided.")
+	return false
+end
 
 function Console:Load()
 	self.Holder = CUI:CreateElement("ScreenGui", {
@@ -67,16 +84,16 @@ function Console:Load()
 			self.Instance.Text = ""
 
 			print(string.format("> %s", InputCommand))
-			for _, Command in pairs(self.Commands) do
-				if Command.Name == InputCommand then
-					Command:Execute(Players.LocalPlayer, InputCommand.split(" "))
-					return
-				end
-			end
-
-			warn("Invalid command provided.")
+			Console:ExecuteCommand(InputCommand, {})
 		end
 	end)
+
+	print("Executing autoexec")
+
+	for command in autoexec:gmatch("[^\n].*$") do
+		print("> " .. command)
+		Console:ExecuteCommand(command, {})
+	end
 
 	LogService.MessageOut:Connect(function(message, messageType)
 		self:OnLog(messageType, message)
