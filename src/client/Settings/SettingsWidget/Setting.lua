@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Packages = ReplicatedStorage:WaitForChild("Packages")
-local CUI = require(Packages.CUI)
+local Carbon = require(ReplicatedStorage:WaitForChild("Carbon"))
+local CUI = require(Carbon.UI.CUI)
 
 local Switches = {
 	Checkbox = require(script.Parent.SwitchesNAll.Checkbox),

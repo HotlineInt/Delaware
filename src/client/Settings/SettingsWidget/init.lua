@@ -2,8 +2,8 @@ local Players = game:GetService("Players")
 
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Packages = ReplicatedStorage:WaitForChild("Packages")
-local CUI = require(Packages.CUI)
+local Carbon = require(ReplicatedStorage:WaitForChild("Carbon"))
+local CUI = require(Carbon.UI.CUI)
 
 local SettingsManager = require(script.Parent.SettingsManager)
 local SettingsWidget = {}

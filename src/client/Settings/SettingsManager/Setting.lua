@@ -1,5 +1,5 @@
-local Packages = game:GetService("ReplicatedStorage"):WaitForChild("Packages")
-local Signal = require(Packages.Signal)
+local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
+local Signal = require(Carbon.Util.Signal)
 
 local Setting = { Name = "DEFAULT_VALUE", IS_SETTING = true, Value = nil, ChangeSignal = nil }
 Setting.__index = Setting
