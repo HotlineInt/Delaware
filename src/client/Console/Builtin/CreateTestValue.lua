@@ -5,5 +5,6 @@ return {
 	Description = "Shows the current place version",
 	Execute = function(Runner: Player, Arguments: table)
 		SettingsManager:AddSetting("CLI_TEST", false)
+		print("Created test value")
 	end,
 }

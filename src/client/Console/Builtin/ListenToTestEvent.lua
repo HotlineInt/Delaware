@@ -7,5 +7,6 @@ return {
 		SettingsManager:OnSettingChange("CLI_TEST", function(OldValue, NewValue)
 			print("CLI_TEST changed from", OldValue, "to", NewValue)
 		end)
+		print("Now listening to test value")
 	end,
 }
