@@ -6,11 +6,11 @@ local LogService = game:GetService("LogService")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Packages = ReplicatedStorage:WaitForChild("Packages")
 
 local ConsoleComponent = require(script.Console)
 local ConsoleLog = require(script.ConsoleLog)
-local CUI = require(Packages.CUI)
+local Carbon = require(ReplicatedStorage:WaitForChild("Carbon"))
+local CUI = require(Carbon.UI.CUI)
 
 local autoexec = script:FindFirstChild("autoexec")
 if autoexec then

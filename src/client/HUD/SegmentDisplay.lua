@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Packages = ReplicatedStorage:WaitForChild("Packages")
+local Carbon = require(ReplicatedStorage:WaitForChild("Carbon"))
+local CUI = require(Carbon.UI.CUI)
 
-local CUI = require(Packages.CUI)
 local Assets = {
 	[1] = "http://www.roblox.com/asset/?id=9739974376",
 	[2] = "http://www.roblox.com/asset/?id=9739975071",

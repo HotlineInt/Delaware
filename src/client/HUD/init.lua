@@ -1,9 +1,9 @@
 local Player = game.Players.LocalPlayer
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Packages = ReplicatedStorage:WaitForChild("Packages")
+local Carbon = require(ReplicatedStorage:WaitForChild("Carbon"))
+local CUI = require(Carbon.UI.CUI)
 
-local CUI = require(Packages.CUI)
 local SegmentDisplay = require(script.SegmentDisplay)
 
 local HUD: HUD = {}
