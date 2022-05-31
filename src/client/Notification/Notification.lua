@@ -14,6 +14,7 @@ return function(Props)
 				AutomaticSize = Enum.AutomaticSize.XY,
 				Size = UDim2.new(1, 0, 0, 0),
 				TextTransparency = 1,
+				TextStrokeTransparency = 1,
 				BackgroundTransparency = 1,
 				Text = Text,
 				Font = Enum.Font.SourceSansBold,
