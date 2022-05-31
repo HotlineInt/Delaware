@@ -31,21 +31,21 @@ function HUD:Load()
 		},
 	})
 
-	Player.CharacterAdded:Connect(function(Character)
-		if self.Connections["HealthChanged"] then
-			self.Connections.HealthChanged:Disconnect()
-		end
-
-		local Humanoid = Character:WaitForChild("Humanoid")
-
-		self.Connections["HealthChanged"] = Humanoid.HealthChanged:Connect(function(...)
-			self:UpdateHealth(...)
-		end)
-	end)
-
 	self.HUDDisplay = HUDMount
 	self.SegmentDisplay = SegmentDisplay
-	HUDMount:Mount(game.Players.LocalPlayer.PlayerGui)
+	HUDMount:Mount(Carbon:GetPlayer().PlayerGui)
+end
+
+function HUD:OnCharacterAdded(Character: Model)
+	if self.Connections["HealthChanged"] then
+		self.Connections.HealthChanged:Disconnect()
+	end
+
+	local Humanoid = Character:WaitForChild("Humanoid")
+
+	self.Connections["HealthChanged"] = Humanoid.HealthChanged:Connect(function(...)
+		self:UpdateHealth(...)
+	end)
 end
 
 function HUD:UpdateHealth(OldHealth: number, NewHealth: number)
@@ -55,7 +55,7 @@ end
 export type HUD = {
 	HUDDisplay: table,
 	Load: nil,
-	SegmentDisplay: SegmentDisplay,
+	SegmentDisplay: {},
 }
 
 return HUD
