@@ -10,7 +10,8 @@ return function(Props)
 		AutomaticSize = Enum.AutomaticSize.Y,
 		[CUI.Children] = {
 			CUI:CreateElement("TextLabel", {
-				AutomaticSize = Enum.AutomaticSize.X,
+				Name = "Label",
+				AutomaticSize = Enum.AutomaticSize.XY,
 				Size = UDim2.new(1, 0, 0, 0),
 				TextTransparency = 1,
 				BackgroundTransparency = 1,
