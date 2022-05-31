@@ -1,16 +1,31 @@
 script.Parent:RemoveDefaultLoadingScreen()
 --local Playerlist = require(script.Parent:WaitForChild("Playerlist"))
-local Console = require(script.Parent:WaitForChild("Console"))
-local Settings = require(script.Parent:WaitForChild("Settings").SettingsWidget)
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
+local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 
-local TEST = true
-local HUD = require(script.Parent.HUD)
+local LaunchTestEnv = false
 
-Console:Load()
---Playerlist:Load()
+if LaunchTestEnv then
+	local TestRunner = require(script.Parent.TestRunner)
+	TestRunner:Begin()
+	return
+end
 
-Settings:Load()
+local TEST = Carbon:IsStudio()
+
+Carbon:RegisterModule(script.Parent.Console)
+Carbon:RegisterModule(script.Parent.Settings.SettingsWidget)
+Carbon:RegisterModule(script.Parent.Footsteps)
 
 if TEST then
-	HUD:Load()
+	Carbon:RegisterModule(script.Parent.HUD)
+
+	for _, DebugModule in pairs(script.Parent.Debug:GetChildren()) do
+		Carbon:RegisterModule(DebugModule)
+	end
 end
+
+Carbon:Start()
+StarterGui:SetCore("TopbarEnabled", false)
+UserInputService.MouseIconEnabled = false
