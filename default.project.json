@@ -5,7 +5,7 @@
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "$path": "src/shared",
-      "Packages": {
+      "Vendor": {
         "$path": "Packages"
       },
       "Carbon": {
@@ -17,9 +17,7 @@
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "Server": {
-        "$path": "src/server"
-      }
+      "$path": "src/server"
     }
   }
 }
