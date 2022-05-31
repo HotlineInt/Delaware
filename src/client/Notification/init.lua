@@ -5,6 +5,8 @@ local NotificationComponent = require(script.Notification)
 local Notifications = {
 	Panel = nil,
 }
+local FadeDelay = 0.7
+local Tween_Info = TweenInfo.new(FadeDelay, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
 function Notifications:Load()
 	self.Panel = CUI:CreateElement("ScreenGui", {
@@ -15,8 +17,6 @@ function Notifications:Load()
 		[CUI.Children] = {
 			CUI:CreateElement("Frame", {
 				Name = "NotificationContainer",
-
-				-- black
 				BackgroundColor3 = Color3.new(0, 0, 0),
 				Size = UDim2.new(1, 0, 0.3, 0),
 				BackgroundTransparency = 1,
@@ -42,9 +42,10 @@ function Notifications:Notify(Text: string)
 	Notification:Mount(Container)
 
 	task.defer(function()
-		LabelText:AnimateTween(TweenInfo.new(0.2), { TextTransparency = 0 })
+		LabelText:AnimateTween(Tween_Info, { TextTransparency = 0, TextStrokeTransparency = 0.5 })
 		task.wait(3)
-		LabelText:AnimateTween(TweenInfo.new(0.2), { TextTransparency = 1 })
+		LabelText:AnimateTween(Tween_Info, { TextTransparency = 1, TextStrokeTransparency = 1 })
+		task.wait(0.2)
 		Notification:Destroy()
 	end)
 end
