@@ -4,18 +4,19 @@ local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon
 local CUI = require(Carbon.UI.CUI)
 local DebugStat = require(script.Stat)
 
-local DebugStats = {
+local PerformanceStats = {
 	Stats = {},
 	PanelCount = 0,
 	Panel = nil,
 	FrameUpdateTable = {},
 }
+
 local LastIteration, Start = nil, os.clock()
 local TimeSinceLastFPSUpdate -- os.clock()
 
-function DebugStats:Load()
+function PerformanceStats:Load()
 	local Panel = CUI:CreateElement("ScreenGui", {
-		Name = "DebugStats",
+		Name = "PerformanceStats",
 		IgnoreGuiInset = true,
 		DisplayOrder = 99999,
 		ResetOnSpawn = false,
@@ -49,7 +50,7 @@ function DebugStats:Load()
 	Panel:Mount(Carbon:GetPlayer().PlayerGui)
 end
 
-function DebugStats:RegisterStat(Name: string, Disabled: boolean)
+function PerformanceStats:RegisterStat(Name: string, Disabled: boolean)
 	self.PanelCount += 1
 	local PanelElement = DebugStat.new(tostring(self.PanelCount) .. Name)
 	local Element = PanelElement:Render({ Disabled = Disabled })
@@ -61,7 +62,7 @@ function DebugStats:RegisterStat(Name: string, Disabled: boolean)
 	return PanelElement
 end
 
-function DebugStats:TogglePanel(PanelName: string, EnabledValue: boolean)
+function PerformanceStats:TogglePanel(PanelName: string, EnabledValue: boolean)
 	local Panel = self.Stats[PanelName]
 
 	if Panel then
@@ -69,13 +70,13 @@ function DebugStats:TogglePanel(PanelName: string, EnabledValue: boolean)
 	end
 end
 
-function DebugStats:IsPanelEnabled(PanelName: string)
+function PerformanceStats:IsPanelEnabled(PanelName: string)
 	local Panel = self.Stats[PanelName]
 
 	return Panel.Panel:GetProperty("Visible")
 end
 
-function DebugStats:Update()
+function PerformanceStats:Update()
 	for Name, Stat in pairs(self.Stats) do
 		if Name == "FPS" and Stat.Panel:GetProperty("Visible") then
 			local FrameUpdateTable = self.FrameUpdateTable
@@ -106,4 +107,4 @@ function DebugStats:Update()
 	end
 end
 
-return DebugStats
+return PerformanceStats

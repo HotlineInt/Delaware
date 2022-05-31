@@ -16,7 +16,7 @@ function DebugStat:Render(Props: table)
 		Size = UDim2.new(0, 150, 0.8, 0),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BorderSizePixel = 0,
-		BackgroundTransparency = 0.3,
+		BackgroundTransparency = 0.5,
 		[CUI.Children] = {
 			CUI:CreateElement("TextLabel", {
 				Name = "Value",
