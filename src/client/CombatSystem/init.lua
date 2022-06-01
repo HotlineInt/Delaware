@@ -8,6 +8,8 @@ local Camera = workspace.CurrentCamera
 local ContextActionService = game:GetService("ContextActionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
+local Log = require(Carbon.Tier0.Logger)
+
 -- get player from Carbon
 local Player = Carbon:GetPlayer()
 
@@ -26,6 +28,7 @@ local CombatSys = {
 	LoadedTools = {},
 	States = {
 		ShouldUpdate = false,
+		ShouldFire = false,
 	},
 }
 
@@ -40,7 +43,7 @@ export type Weapon = {
 }
 
 function CombatSys:Load()
-	print("Processing viewmodels")
+	Log:Debug("Processing viewmodels")
 	local TOTAL_PROCESSED_VIEWMODELS = 0
 
 	for _, ViewModel in pairs(ViewModels:GetChildren()) do
@@ -56,14 +59,36 @@ function CombatSys:Load()
 		end
 	end
 
-	print(string.format("Processed %d ViewModels", TOTAL_PROCESSED_VIEWMODELS))
+	Log:Debug(string.format("Processed %d ViewModels", TOTAL_PROCESSED_VIEWMODELS))
 
-	ContextActionService:BindAction("Fire", function(...)
+	ContextActionService:BindAction("Mouse", function(...)
 		self:HandleAction(...)
 	end, false, Enum.UserInputType.MouseButton1)
+
+	task.spawn(function()
+		while true do
+			local CurrentWeapon = self.CurrentWeapon
+
+			if self.States.ShouldFire and CurrentWeapon then
+				Log:Debug("pew pew time")
+				self:FireWeapon()
+				task.wait(60 / CurrentWeapon.RPM)
+			end
+
+			task.wait()
+		end
+	end)
 end
 
 function CombatSys:OnCharacterAdded()
+	-- clear up varaibles
+	self.States.ShouldFire = false
+	self.States.ShouldUpdate = false
+
+	self.CurrentWeapon = nil
+	self.LoadedTools = {}
+	self.LoadedWeapons = {}
+
 	-- get backpack
 	local Backpack = Player:WaitForChild("Backpack")
 
@@ -93,7 +118,7 @@ function CombatSys:_CreateTool(Tool: Tool)
 	local Class = self:AddWeapon(Tool)
 
 	Tool.Equipped:Connect(function()
-		print("quite the goof")
+		Log:Debug("quite the goof")
 		self:EquipWeapon(Class)
 	end)
 
@@ -107,24 +132,28 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 		return
 	end
 
-	if ActionName == "Fire" and InputState == Enum.UserInputState.Begin then
-		self:FireWeapon()
+	if ActionName == "Mouse" and InputState == Enum.UserInputState.Begin then
+		self.States.ShouldFire = true
+	elseif
+		ActionName == "Mouse" and InputState == Enum.UserInputState.End or InputState == Enum.UserInputState.Cancel
+	then
+		self.States.ShouldFire = false
 	end
 end
 
 function CombatSys:AddWeapon(Tool: Tool): Weapon
-	print("Creating", Tool)
+	Log:Debug("Creating " .. Tool.Name)
 	if not Tool:FindFirstChild("Animations") or not Tool:FindFirstChild("Sounds") then
-		error("Tool is missing critical stuff. Will not load.")
+		Log:Exception("Tool is missing critical stuff. Will not load.")
 	end
 
 	-- check if the tool has already been loaded
 	if self.LoadedWeapons[Tool.Name] then
-		warn("Weapon " .. Tool.Name .. " has already been loaded.")
+		Log:Debug("Weapon " .. Tool.Name .. " has already been loaded.")
 		return
 	end
 	if self.LoadedTools[Tool] then
-		warn("Tool " .. Tool.Name .. " has already been loaded.")
+		Log:Debug("Tool " .. Tool.Name .. " has already been loaded.")
 		return
 	end
 
@@ -133,7 +162,7 @@ function CombatSys:AddWeapon(Tool: Tool): Weapon
 	-- Get WeaponModule based on tool name
 	local WeaponModule = WeaponModules:FindFirstChild(RequestedModule)
 	if not WeaponModule then
-		error("WeaponModule not found for " .. Tool.Name)
+		Log:Exception("WeaponModule not found for " .. Tool.Name)
 	else
 		WeaponModule = require(WeaponModule)
 	end
@@ -150,7 +179,7 @@ end
 
 function CombatSys:GetStat(StatName: string): any
 	if not self.CurrentWeapon then
-		error("Can't do this with no CurrentWeapon")
+		Log:Exception("Can't do this with no CurrentWeapon")
 		return
 	end
 
@@ -159,7 +188,7 @@ end
 
 function CombatSys:SetStat(StatName: string, Value: any): nil
 	if not self.CurrentWeapon then
-		error("Can't do this with no CurrentWeapon")
+		Log:Exception("Can't do this with no CurrentWeapon")
 		return
 	end
 
@@ -169,12 +198,17 @@ end
 function CombatSys:FireWeapon()
 	-- get current weapon
 	local CurrentWeapon = self.CurrentWeapon
+
+	if CurrentWeapon == nil then
+		Log:Debug("Cant fire without a gun. Stupid!")
+	end
+
 	-- get current weapon's firemode
-	local FireMode = CurrentWeapon.FireMode
 	local CurrentAmmo = self:GetStat("Ammo")
 
 	if CurrentAmmo <= 0 then
-		print("Can't fire.")
+		self.States.ShouldFire = false
+		Log:Debug("Can't fire.")
 		return
 	end
 
@@ -183,39 +217,41 @@ function CombatSys:FireWeapon()
 end
 
 function CombatSys:EquipWeapon(Weapon: Weapon)
+	self.States.ShouldFire = false
+	self.States.ShouldUpdate = false
 	-- Define variables based on the type
-	local Tool = Weapon.Tool
 
 	-- Check if given weapon is not self.CurrentWeapon
 	if self.CurrentWeapon == Weapon then
-		error("Cannot equip the current weapon")
+		Log:Exception("Cannot equip the current weapon")
 		return
 	end
 
 	if self.CurrentWeapon then
 		-- Dequip the current weapon
-		warn("Dequipping existing weapon")
+		Log:Debug("Dequipping existing weapon")
 		self:DequipWeapon()
 	end
 
-	print("setting currentweapon")
+	Log:Debug("setting currentweapon")
 	-- Set current weapon to the given weapon
 	self.CurrentWeapon = Weapon
 
-	print("setting viewmodel")
+	Log:Debug("setting viewmodel")
 	local ViewModel = Weapon.ViewModel:Clone()
 	ViewModel.Parent = Camera
 	self.CurrentWeapon.ViewModel = ViewModel
 
 	self.CurrentWeapon:Equip()
 
-	print("updating")
 	-- Set ShouldUpdate to true
 	self.States.ShouldUpdate = true
-	print("Equipped " .. Weapon.Name)
+	Log:Debug("Equipped " .. Weapon.Name)
 end
 
 function CombatSys:DequipWeapon()
+	self.States.ShouldFire = false
+	self.States.ShouldUpdate = false
 	-- Check if there's an current weapon available
 	if not self.CurrentWeapon then
 		error("Cannot dequip with no weapon equipped")
@@ -234,8 +270,11 @@ end
 
 function CombatSys:Update()
 	local CurrentWeapon: Weapon = self.CurrentWeapon
+	if not CurrentWeapon then
+		return
+	end
 
-	if self.States.ShouldUpdate and CurrentWeapon then
+	if self.States.ShouldUpdate then
 		local ViewModel: Model = CurrentWeapon.ViewModel
 		ViewModel:SetPrimaryPartCFrame(Camera.CFrame)
 	end
