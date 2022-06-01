@@ -20,20 +20,21 @@ Carbon:RegisterModule(script.Parent.Notification)
 Carbon:RegisterModule(script.Parent.Console)
 Carbon:RegisterModule(script.Parent.Settings.SettingsWidget)
 Carbon:RegisterModule(script.Parent.Footsteps)
+Knit:Start():andThen(function()
+	if TEST then
+		Carbon:RegisterModule(script.Parent.HUD)
+		--require(script.Parent.Screens.BuySupporter)():Mount(Carbon:GetPlayer().PlayerGui)
 
-if TEST then
-	Carbon:RegisterModule(script.Parent.HUD)
-	--require(script.Parent.Screens.BuySupporter)():Mount(Carbon:GetPlayer().PlayerGui)
+		for _, DebugModule in pairs(script.Parent.Debug:GetChildren()) do
+			Carbon:RegisterModule(DebugModule)
+		end
 
-	for _, DebugModule in pairs(script.Parent.Debug:GetChildren()) do
-		Carbon:RegisterModule(DebugModule)
+		Carbon:RegisterModule(script.Parent.CombatSystem)
 	end
 
-	Carbon:RegisterModule(script.Parent.CombatSystem)
-end
+	Carbon:Start()
+end)
 
-Knit:Start()
-Carbon:Start()
 --Carbon.Modules["CombatSystem"]:EquipWeapon(Carbon.Modules.CombatSystem.LoadedWeapons["Pistol"])
 -- local Info = TweenInfo.new(0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.InOut)
 -- local StartFOV = Camera.FieldOfView
