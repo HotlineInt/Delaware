@@ -38,7 +38,6 @@ function Notifications:Notify(Text: string)
 	local Notification = NotificationComponent({ Text = Text })
 	local LabelText = Notification:Get("Label")
 	local Container = self.Panel:Get("NotificationContainer")
-	print("Yoinky sploinky")
 	Notification:Mount(Container)
 
 	task.defer(function()
@@ -47,6 +46,11 @@ function Notifications:Notify(Text: string)
 		LabelText:AnimateTween(Tween_Info, { TextTransparency = 1, TextStrokeTransparency = 1 })
 		task.wait(0.2)
 		Notification:Destroy()
+
+		-- Cleanup
+		Notification = nil
+		LabelText = nil
+		Container = nil
 	end)
 end
 
