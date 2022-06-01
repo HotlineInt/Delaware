@@ -23,6 +23,7 @@ local WeaponModules = game:GetService("ReplicatedStorage"):WaitForChild("WeaponM
 local CombatSys = {
 	CurrentWeapon = nil,
 	LoadedWeapons = {},
+	LoadedTools = {},
 	States = {
 		ShouldUpdate = false,
 	},
@@ -67,23 +68,34 @@ function CombatSys:OnCharacterAdded()
 	-- just connect ChildAdded
 
 	for _, Tool in pairs(Backpack:GetChildren()) do
-		-- verify the weapon is valid
-		if not Tool:IsA("Tool") then
-			return
-		end
-
-		-- call AddWeapon()
-		self:AddWeapon(Tool)
+		self:_CreateTool(Tool)
 	end
 
 	Backpack.ChildAdded:Connect(function(Tool: Tool)
-		-- verify the weapon is valid
-		if not Tool:IsA("Tool") then
-			return
-		end
+		self:_CreateTool(Tool)
+	end)
+end
 
-		-- call AddWeapon()
-		self:AddWeapon(Tool)
+function CombatSys:_CreateTool(Tool: Tool)
+	-- verify the weapon is valid
+	if not Tool:IsA("Tool") then
+		return
+	end
+
+	if self.LoadedTools[Tool] then
+		return
+	end
+
+	-- call AddWeapon()
+	local Class = self:AddWeapon(Tool)
+
+	Tool.Equipped:Connect(function()
+		print("quite the goof")
+		self:EquipWeapon(Class)
+	end)
+
+	Tool.Unequipped:Connect(function()
+		self:DequipWeapon()
 	end)
 end
 
@@ -92,7 +104,7 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 		return
 	end
 
-	if ActionName == "Fire" then
+	if ActionName == "Fire" and InputState == Enum.UserInputState.Begin then
 		self:FireWeapon()
 	end
 end
@@ -108,6 +120,11 @@ function CombatSys:AddWeapon(Tool: Tool): Weapon
 		warn("Weapon " .. Tool.Name .. " has already been loaded.")
 		return
 	end
+	if self.LoadedTools[Tool] then
+		warn("Tool " .. Tool.Name .. " has already been loaded.")
+		return
+	end
+
 	local RequestedModule = Tool:GetAttribute("Module") or ""
 
 	-- Get WeaponModule based on tool name
@@ -122,13 +139,28 @@ function CombatSys:AddWeapon(Tool: Tool): Weapon
 	local Weapon = WeaponModule.new(Tool)
 
 	-- add weapon class to self.LoadedWeapons
+	self.LoadedTools[Tool] = true
 	self.LoadedWeapons[Tool.Name] = Weapon
 
-	self:EquipWeapon({
-		Tool = Tool,
-		Name = Tool.Name,
-		ViewModel = ViewModels.Pistol,
-	})
+	return Weapon
+end
+
+function CombatSys:GetStat(StatName: string): any
+	if not self.CurrentWeapon then
+		error("Can't do this with no CurrentWeapon")
+		return
+	end
+
+	return self.CurrentWeapon.Tool:GetAttribute(StatName)
+end
+
+function CombatSys:SetStat(StatName: string, Value: any): nil
+	if not self.CurrentWeapon then
+		error("Can't do this with no CurrentWeapon")
+		return
+	end
+
+	return self.CurrentWeapon.Tool:SetAttribute(StatName, Value)
 end
 
 function CombatSys:FireWeapon()
@@ -136,17 +168,20 @@ function CombatSys:FireWeapon()
 	local CurrentWeapon = self.CurrentWeapon
 	-- get current weapon's firemode
 	local FireMode = CurrentWeapon.FireMode
+	local CurrentAmmo = self:GetStat("Ammo")
 
-	print("pew pew")
+	if CurrentAmmo <= 0 then
+		print("Can't fire.")
+		return
+	end
+
+	CurrentWeapon:Fire()
+	self:SetStat("Ammo", CurrentAmmo - 1)
 end
 
 function CombatSys:EquipWeapon(Weapon: Weapon)
 	-- Define variables based on the type
 	local Tool = Weapon.Tool
-	local Animations = Tool:FindFirstChild("Animations")
-	local Sounds = Tool:FindFirstChild("Sounds")
-	local MaxAmmo = Tool:GetAttribute("MaxAmmo")
-	local Ammo = Tool:GetAttribute("Ammo")
 
 	-- Check if given weapon is not self.CurrentWeapon
 	if self.CurrentWeapon == Weapon then
@@ -156,16 +191,22 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 
 	if self.CurrentWeapon then
 		-- Dequip the current weapon
+		warn("Dequipping existing weapon")
 		self:DequipWeapon()
 	end
 
+	print("setting currentweapon")
 	-- Set current weapon to the given weapon
 	self.CurrentWeapon = Weapon
 
+	print("setting viewmodel")
 	local ViewModel = Weapon.ViewModel:Clone()
 	ViewModel.Parent = Camera
 	self.CurrentWeapon.ViewModel = ViewModel
 
+	self.CurrentWeapon:Equip()
+
+	print("updating")
 	-- Set ShouldUpdate to true
 	self.States.ShouldUpdate = true
 	print("Equipped " .. Weapon.Name)
@@ -179,13 +220,13 @@ function CombatSys:DequipWeapon()
 	end
 
 	-- Dequip the weapon
-	self.CurrentWeapon.ViewModel:Destroy()
-	self.CurrentWeapon:Dequip()
+	self.CurrentWeapon.ViewModel.Parent = nil
 	-- Cleanup
-	self.CurrentWeapon = nil
+	self.CurrentWeapon:Dequip()
 
 	-- Set ShouldUpdate to false
 	self.States.ShouldUpdate = false
+	self.CurrentWeapon = nil
 end
 
 function CombatSys:Update()
