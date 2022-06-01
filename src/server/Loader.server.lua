@@ -9,6 +9,7 @@ workspace:SetAttribute("GameVersion", GameVersion)
 local TotalServices = 0
 for _, Service: ModuleScript in pairs(ServicesFolder:GetChildren()) do
 	local ServiceTable = require(Service)
+	ServiceTable.Name = Service.Name
 	Knit:CreateService(ServiceTable)
 
 	TotalServices += 1
