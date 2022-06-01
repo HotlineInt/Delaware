@@ -3,8 +3,8 @@ script.Parent:RemoveDefaultLoadingScreen()
 local Camera = workspace.CurrentCamera
 local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
+local Knit = require(Carbon.Framework.Knit)
 
 local LaunchTestEnv = false
 
@@ -32,6 +32,7 @@ if TEST then
 	Carbon:RegisterModule(script.Parent.CombatSystem)
 end
 
+Knit:Start()
 Carbon:Start()
 --Carbon.Modules["CombatSystem"]:EquipWeapon(Carbon.Modules.CombatSystem.LoadedWeapons["Pistol"])
 -- local Info = TweenInfo.new(0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.InOut)
