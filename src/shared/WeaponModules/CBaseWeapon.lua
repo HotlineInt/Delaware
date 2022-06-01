@@ -1,5 +1,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
+-- get knit bridge
+local Knit = require(Carbon.Framework.Knit)
+-- -- get WeaponsService
+local WeaponsService = Knit:GetService("WeaponsService")
+local Mouse = Carbon:GetPlayer():GetMouse()
+
 local ViewModelFolder = ReplicatedStorage:WaitForChild("ViewModels")
 
 export type Weapon = {
@@ -27,6 +33,7 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 		error(string.format("Invalid ViewModel provided for %s", Tool.Name))
 	end
 
+	self.UsesAmmo = true
 	self.Tool = Tool
 	self.Name = Tool.Name
 	self.FireMode = FireMode
@@ -59,7 +66,7 @@ end
 
 function CBaseWeapon:Fire()
 	if self.Ammo >= 0 then
-		print("Pew")
+		WeaponsService:FireWeapon(self, Mouse.Hit.Position)
 		self.Ammo = self.Ammo - 1
 	else
 		print("nah bro")
