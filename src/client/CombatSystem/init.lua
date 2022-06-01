@@ -12,9 +12,9 @@ local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon
 local Player = Carbon:GetPlayer()
 
 -- get knit bridge
--- local Knit = require(Carbon.Framework.Knit)
+local Knit = require(Carbon.Framework.Knit)
 -- -- get WeaponsService
--- local WeaponsService = Knit:GetService("WeaponsService")
+local WeaponsService = Knit:GetService("WeaponsService")
 -- get viewmodels folder from ReplicatedStorage
 local ViewModels = game:GetService("ReplicatedStorage"):WaitForChild("ViewModels")
 -- get weapons folder from ReplicatedStorage
@@ -49,6 +49,9 @@ function CombatSys:Load()
 			if not Part:IsA("BasePart") then
 				continue
 			end
+			Part.CanQuery = false
+			Part.CanCollide = false
+			Part.CanTouch = false
 			PhysicsService:SetPartCollisionGroup(Part, "ViewModels")
 		end
 	end
