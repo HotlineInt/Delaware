@@ -151,7 +151,7 @@ function CombatSys:GetStat(StatName: string): any
 		return
 	end
 
-	return self.CurrentWeapon.Tool:GetAttribute(StatName)
+	return self.CurrentWeapon:GetStat(StatName)
 end
 
 function CombatSys:SetStat(StatName: string, Value: any): nil
@@ -160,7 +160,7 @@ function CombatSys:SetStat(StatName: string, Value: any): nil
 		return
 	end
 
-	return self.CurrentWeapon.Tool:SetAttribute(StatName, Value)
+	return self.CurrentWeapon:SetStat(StatName, Value)
 end
 
 function CombatSys:FireWeapon()
