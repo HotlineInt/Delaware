@@ -62,5 +62,9 @@ Carbon:Start()
 -- end)
 
 Camera.FieldOfView = 90
-StarterGui:SetCore("TopbarEnabled", false)
+--StarterGui:SetCore("TopbarEnabled", false)
+
+-- debug purposes only !!
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
 UserInputService.MouseIconEnabled = false
