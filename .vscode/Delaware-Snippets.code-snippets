@@ -22,5 +22,37 @@
 			"local Carbon = require(game:GetService(\"ReplicatedStorage\"):WaitForChild(\"Carbon\"))"
 		],
 		"description": "Retrive Carbon"
+	},
+	"Service": {
+		"prefix": [
+			"service"
+		],
+		"body": [
+			"local ${0:Name}Service = game:GetService(\"${0:Name}Service\")"
+		],
+		"description": "Roblox Service"
+	},
+	"Knit Service": {
+		"prefix": [
+			"knitservice"
+		],
+		"body": [
+			"local ${0:$TM_FILENAME_BASE} = {",
+			"\tName = \"${0:$TM_FILENAME_BASE}\",",
+			"\tClient = {},",
+			"}",
+			"",
+			"function ${0:$TM_FILENAME_BASE}:KnitStart()",
+			"\t",
+			"end",
+			"",
+			"function ${0:$TM_FILENAME_BASE}:KnitInit()",
+			"\t",
+			"end",
+			"",
+			"return ${0:$TM_FILENAME_BASE}",
+			""
+		],
+		"description": "Knit Service template"
 	}
 }
