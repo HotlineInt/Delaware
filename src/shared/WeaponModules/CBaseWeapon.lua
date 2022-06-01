@@ -44,6 +44,11 @@ function CBaseWeapon:Dequip()
 end
 
 function CBaseWeapon:SetStat(Name: string, Value: any)
+	-- Update our values as well
+	if self[Name] then
+		self[Name] = Value
+	end
+
 	self.Tool:SetAttribute(Name, Value)
 	return Value
 end
