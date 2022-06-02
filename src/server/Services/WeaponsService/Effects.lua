@@ -111,6 +111,7 @@ function Effects:HitEffect(Part: BasePart, Position: Vector3, Normal: Vector3?):
 			Decal.Parent = BulletHole
 
 			BulletHole.Parent = Part
+			Debris:AddItem(BulletHole, 10)
 		end
 	end
 
@@ -121,6 +122,7 @@ function Effects:SoundEffect(Attachment: Attachment, MaterialFolder: Folder)
 	local Sound = RandomUtil:rlist(MaterialFolder.Sounds:GetChildren()):Clone()
 	Sound.PlaybackSpeed = RandomUtil:randf(0.8, 1.25)
 	Sound.Parent = Attachment
+	Sound.MaxDistance = 60
 	Sound:Play()
 	Debris:AddItem(Sound, Sound.TimeLength / Sound.PlaybackSpeed)
 end
