@@ -8,7 +8,6 @@ local Camera = workspace.CurrentCamera
 local ContextActionService = game:GetService("ContextActionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
-local Log = require(Carbon.Tier0.Logger)
 
 -- get player from Carbon
 local Player = Carbon:GetPlayer()
@@ -43,7 +42,7 @@ export type Weapon = {
 }
 
 function CombatSys:Load()
-	Log:Debug("Processing viewmodels")
+	print("Processing viewmodels")
 	local TOTAL_PROCESSED_VIEWMODELS = 0
 
 	for _, ViewModel in pairs(ViewModels:GetChildren()) do
@@ -59,18 +58,22 @@ function CombatSys:Load()
 		end
 	end
 
-	Log:Debug(string.format("Processed %d ViewModels", TOTAL_PROCESSED_VIEWMODELS))
+	print(string.format("Processed %d ViewModels", TOTAL_PROCESSED_VIEWMODELS))
 
 	ContextActionService:BindAction("Mouse", function(...)
 		self:HandleAction(...)
 	end, false, Enum.UserInputType.MouseButton1)
+
+	ContextActionService:BindAction("Reload", function(...)
+		self:HandleAction(...)
+	end, false, Enum.KeyCode.R)
 
 	task.spawn(function()
 		while true do
 			local CurrentWeapon = self.CurrentWeapon
 
 			if self.States.ShouldFire and CurrentWeapon then
-				Log:Debug("pew pew time")
+				print("pew pew time")
 				self:FireWeapon()
 				task.wait(60 / CurrentWeapon.RPM)
 			end
@@ -118,7 +121,7 @@ function CombatSys:_CreateTool(Tool: Tool)
 	local Class = self:AddWeapon(Tool)
 
 	Tool.Equipped:Connect(function()
-		Log:Debug("quite the goof")
+		print("quite the goof")
 		self:EquipWeapon(Class)
 	end)
 
@@ -132,6 +135,10 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 		return
 	end
 
+	if ActionName == "Reload" and InputState == Enum.UserInputState.Begin then
+		self:ReloadWeapon()
+	end
+
 	if ActionName == "Mouse" and InputState == Enum.UserInputState.Begin then
 		self.States.ShouldFire = true
 	elseif
@@ -142,18 +149,18 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 end
 
 function CombatSys:AddWeapon(Tool: Tool): Weapon
-	Log:Debug("Creating " .. Tool.Name)
+	print("Creating", Tool)
 	if not Tool:FindFirstChild("Animations") or not Tool:FindFirstChild("Sounds") then
-		Log:Exception("Tool is missing critical stuff. Will not load.")
+		error("Tool is missing critical stuff. Will not load.")
 	end
 
 	-- check if the tool has already been loaded
 	if self.LoadedWeapons[Tool.Name] then
-		Log:Debug("Weapon " .. Tool.Name .. " has already been loaded.")
+		warn("Weapon " .. Tool.Name .. " has already been loaded.")
 		return
 	end
 	if self.LoadedTools[Tool] then
-		Log:Debug("Tool " .. Tool.Name .. " has already been loaded.")
+		warn("Tool " .. Tool.Name .. " has already been loaded.")
 		return
 	end
 
@@ -162,7 +169,7 @@ function CombatSys:AddWeapon(Tool: Tool): Weapon
 	-- Get WeaponModule based on tool name
 	local WeaponModule = WeaponModules:FindFirstChild(RequestedModule)
 	if not WeaponModule then
-		Log:Exception("WeaponModule not found for " .. Tool.Name)
+		error("WeaponModule not found for " .. Tool.Name)
 	else
 		WeaponModule = require(WeaponModule)
 	end
@@ -179,7 +186,7 @@ end
 
 function CombatSys:GetStat(StatName: string): any
 	if not self.CurrentWeapon then
-		Log:Exception("Can't do this with no CurrentWeapon")
+		error("Can't do this with no CurrentWeapon")
 		return
 	end
 
@@ -188,7 +195,7 @@ end
 
 function CombatSys:SetStat(StatName: string, Value: any): nil
 	if not self.CurrentWeapon then
-		Log:Exception("Can't do this with no CurrentWeapon")
+		error("Can't do this with no CurrentWeapon")
 		return
 	end
 
@@ -200,7 +207,7 @@ function CombatSys:FireWeapon()
 	local CurrentWeapon = self.CurrentWeapon
 
 	if CurrentWeapon == nil then
-		Log:Debug("Cant fire without a gun. Stupid!")
+		return
 	end
 
 	-- get current weapon's firemode
@@ -208,7 +215,7 @@ function CombatSys:FireWeapon()
 
 	if CurrentAmmo <= 0 then
 		self.States.ShouldFire = false
-		Log:Debug("Can't fire.")
+		print("Can't fire.")
 		return
 	end
 
@@ -223,30 +230,42 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 
 	-- Check if given weapon is not self.CurrentWeapon
 	if self.CurrentWeapon == Weapon then
-		Log:Exception("Cannot equip the current weapon")
+		error("Cannot equip the current weapon")
 		return
 	end
 
 	if self.CurrentWeapon then
 		-- Dequip the current weapon
-		Log:Debug("Dequipping existing weapon")
+		warn("Dequipping existing weapon")
 		self:DequipWeapon()
 	end
 
-	Log:Debug("setting currentweapon")
+	print("setting currentweapon")
 	-- Set current weapon to the given weapon
 	self.CurrentWeapon = Weapon
 
-	Log:Debug("setting viewmodel")
+	print("setting viewmodel")
 	local ViewModel = Weapon.ViewModel:Clone()
 	ViewModel.Parent = Camera
 	self.CurrentWeapon.ViewModel = ViewModel
 
 	self.CurrentWeapon:Equip()
 
+	print("updating")
 	-- Set ShouldUpdate to true
 	self.States.ShouldUpdate = true
-	Log:Debug("Equipped " .. Weapon.Name)
+	print("Equipped " .. Weapon.Name)
+end
+
+function CombatSys:ReloadWeapon()
+	local CurrentWeapon = self.CurrentWeapon
+	if not CurrentWeapon then
+		error("Cannot reload with no current weapon equipped!")
+		return
+	end
+
+	self.States.ShouldFire = false
+	CurrentWeapon:Reload()
 end
 
 function CombatSys:DequipWeapon()
