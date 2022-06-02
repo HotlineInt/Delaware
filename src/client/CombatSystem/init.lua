@@ -1,5 +1,6 @@
 -- init.lua - contact@shiroko.me - 2022/05/31
 -- ! Description: Combat Sys. VERY MESSY !!!!!!!!!!!!!!!!!!!
+-- oficial name: nakosys
 
 -- get camera
 local Camera = workspace.CurrentCamera
@@ -9,11 +10,8 @@ local ContextActionService = game:GetService("ContextActionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 
--- get player from Carbon
 local Player = Carbon:GetPlayer()
--- get viewmodels folder from ReplicatedStorage
 local ViewModels = game:GetService("ReplicatedStorage"):WaitForChild("ViewModels")
--- get weapons folder from ReplicatedStorage
 local WeaponModules = game:GetService("ReplicatedStorage"):WaitForChild("WeaponModules")
 
 local WeapoNHud = require(script.WeaponHud)
@@ -27,7 +25,6 @@ local CombatSys = {
 		ShouldFire = false,
 	},
 }
-
 export type Weapon = {
 	Name: string,
 	FireMode: string,
@@ -42,18 +39,20 @@ function CombatSys:Load()
 	print("Processing viewmodels")
 	local TOTAL_PROCESSED_VIEWMODELS = 0
 
-	for _, ViewModel in pairs(ViewModels:GetChildren()) do
-		TOTAL_PROCESSED_VIEWMODELS += 1
-		for _, Part in pairs(ViewModel:GetDescendants()) do
-			if not Part:IsA("BasePart") then
-				continue
+	task.defer(function()
+		for _, ViewModel in pairs(ViewModels:GetChildren()) do
+			TOTAL_PROCESSED_VIEWMODELS += 1
+			for _, Part in pairs(ViewModel:GetDescendants()) do
+				if not Part:IsA("BasePart") then
+					continue
+				end
+				Part.CanQuery = false
+				Part.CanCollide = false
+				Part.CanTouch = false
+				PhysicsService:SetPartCollisionGroup(Part, "ViewModels")
 			end
-			Part.CanQuery = false
-			Part.CanCollide = false
-			Part.CanTouch = false
-			PhysicsService:SetPartCollisionGroup(Part, "ViewModels")
 		end
-	end
+	end)
 
 	print(string.format("Processed %d ViewModels", TOTAL_PROCESSED_VIEWMODELS))
 
