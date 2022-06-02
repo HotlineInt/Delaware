@@ -21,10 +21,13 @@ local CombatSys = {
 	LoadedWeapons = {},
 	LoadedTools = {},
 	States = {
+		CanEquip = false,
 		ShouldUpdate = false,
 		ShouldFire = false,
 	},
 }
+local HumanoidDiedConnection
+
 export type Weapon = {
 	Name: string,
 	FireMode: string,
@@ -83,7 +86,11 @@ function CombatSys:Load()
 	end)
 end
 
-function CombatSys:OnCharacterAdded()
+function CombatSys:OnCharacterAdded(Character: Model)
+	if HumanoidDiedConnection then
+		HumanoidDiedConnection:Disconnect()
+	end
+
 	-- clear up varaibles
 	self.States.ShouldFire = false
 	self.States.ShouldUpdate = false
@@ -93,7 +100,18 @@ function CombatSys:OnCharacterAdded()
 	self.LoadedWeapons = {}
 
 	-- get backpack
-	local Backpack = Player:WaitForChild("Backpack")
+	local Backpack: Backpack = Player:WaitForChild("Backpack")
+	local Humanoid: Humanoid = Character:WaitForChild("Humanoid")
+
+	HumanoidDiedConnection = Humanoid.Died:Connect(function()
+		-- Massive cleanup
+		self:DequipWeapon()
+		self.LoadedTools = {}
+		self.LoadedWeapons = {}
+		self.States.ShouldFire = false
+		self.States.ShouldUpdate = false
+		self.States.CanEquip = false
+	end)
 
 	-- childadded on backpack
 	-- just connect ChildAdded
@@ -105,6 +123,8 @@ function CombatSys:OnCharacterAdded()
 	Backpack.ChildAdded:Connect(function(Tool: Tool)
 		self:_CreateTool(Tool)
 	end)
+
+	self.States.CanEquip = true
 end
 
 function CombatSys:_CreateTool(Tool: Tool)
@@ -257,6 +277,11 @@ function CombatSys:FireWeapon()
 end
 
 function CombatSys:EquipWeapon(Weapon: Weapon)
+	if not self.States.CanEquip then
+		warn("You cannot equip right now.")
+		return
+	end
+
 	self.States.ShouldFire = false
 	self.States.ShouldUpdate = false
 	-- Define variables based on the type
@@ -316,6 +341,11 @@ function CombatSys:ReloadWeapon()
 end
 
 function CombatSys:DequipWeapon()
+	if not self.States.CanEquip then
+		warn("You cannot deequip right now.")
+		return
+	end
+
 	self.States.ShouldFire = false
 	self.States.ShouldUpdate = false
 	-- Check if there's an current weapon available
