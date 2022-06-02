@@ -1,9 +1,12 @@
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
+local Knit = require(Carbon.Framework.Knit)
 local Signal = require(Carbon.Util.Signal)
 
 local Players = game:GetService("Players")
 local WeaponService = {
-	Client = {},
+	Client = {
+		ReloadComplete = Knit:CreateSignal("ReloadComplete"),
+	},
 }
 export type Weapon = {
 	Name: string,
@@ -271,19 +274,15 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 		end),
 		TermSignal,
 	}
-	local Connection
-	Connection = TermSignal:Connect(function(Result)
-		Connection:Disconnect()
-		if Result == "Cancelled" then
-			print("Ouch!")
-			task.wait(0.09)
-			WeaponService:SetState(Weapon, StateEnum.Idle)
-			return false
-		elseif Result == "Completed" then
-			ReloadThreads[Tool] = nil
-			return true
-		end
-	end)
+	local Result = TermSignal:Wait()
+	if Result == "Cancelled" then
+		print("Ouch!")
+	elseif Result == "Completed" then
+		ReloadThreads[Tool] = nil
+	end
+	task.wait(0.09)
+	WeaponService:SetState(Weapon, StateEnum.Idle)
+	--self.ReloadComplete:Fire(Player, Weapon, Result)
 end
 
 return WeaponService
