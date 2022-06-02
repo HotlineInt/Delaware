@@ -193,6 +193,15 @@ function CombatSys:GetStat(StatName: string): any
 	return self.CurrentWeapon:GetStat(StatName)
 end
 
+function CombatSys:GetState()
+	if not self.CurrentWeapon then
+		error("Cannot pull state with no CurrentWeapon")
+		return
+	end
+
+	return self.CurrentWeapon.Tool:GetAttribute("State")
+end
+
 function CombatSys:SetStat(StatName: string, Value: any): nil
 	if not self.CurrentWeapon then
 		error("Can't do this with no CurrentWeapon")
@@ -212,6 +221,15 @@ function CombatSys:FireWeapon()
 
 	-- get current weapon's firemode
 	local CurrentAmmo = self:GetStat("Ammo")
+
+	-- get state
+	local State = self:GetState()
+
+	-- if not idle then cancel
+	if State ~= "Idle" then
+		warn("Cannot fire weapon while not in idle state")
+		return
+	end
 
 	if CurrentAmmo <= 0 then
 		self.States.ShouldFire = false
@@ -261,6 +279,15 @@ function CombatSys:ReloadWeapon()
 	local CurrentWeapon = self.CurrentWeapon
 	if not CurrentWeapon then
 		error("Cannot reload with no current weapon equipped!")
+		return
+	end
+
+	-- get state
+	local State = self:GetState()
+
+	-- if not idle then cancel
+	if State ~= "Idle" then
+		warn("Cannot reload weapon while not in idle state")
 		return
 	end
 
