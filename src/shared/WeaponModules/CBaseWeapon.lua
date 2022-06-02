@@ -35,11 +35,16 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 
 	self.UsesAmmo = true
 	self.Tool = Tool
+	self.Reloading = false
 	self.Name = Tool.Name
 	self.FireMode = FireMode
 	self.MaxAmmo = MaxAmmo
 	self.Ammo = Ammo
+	self.RPM = 1200
+	self.Firing = true
 	self.ViewModel = ViewModel
+
+	WeaponsService:RegisterWeapon(self)
 end
 
 function CBaseWeapon:Equip()
@@ -65,11 +70,26 @@ function CBaseWeapon:GetStat(Name: string)
 end
 
 function CBaseWeapon:Fire()
+	local IsReloading = self:GetStat("Reloading")
+
+	if IsReloading and self.Reloading then
+		return
+	end
+
 	if self.Ammo >= 0 then
+		self.Firing = false
 		WeaponsService:FireWeapon(self, Mouse.Hit.Position)
-		self.Ammo = self.Ammo - 1
+		self.Ammo = self:GetStat("Ammo")
 	else
 		print("nah bro")
+	end
+end
+
+function CBaseWeapon:Reload()
+	if self.Ammo < self.MaxAmmo then
+		self.Reloading = true
+		local ReloadSuccess = WeaponsService:Reload(self)
+		self.Reloading = false
 	end
 end
 

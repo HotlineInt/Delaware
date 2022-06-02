@@ -11,9 +11,16 @@ export type Weapon = {
 	ViewModel: Model,
 	Tool: Tool,
 }
+local StateEnum = {
+	Idle = "Idle",
+	Firing = "Firing",
+	Reloading = "Reloading",
+}
 
 local Effects = require(script.Effects)
 local RayVisualizer = require(script.Parent.Parent.Visualizers.RayVisualizer)
+
+local ReloadThreads = {}
 
 -- Hat pass, really messy
 -- All to just make hats not be taken into account while casting a ray....
@@ -43,10 +50,44 @@ function WeaponService:KnitStart()
 	end)
 end
 
+function WeaponService.Client:RegisterWeapon(Player: Player, Weapon: Weapon)
+	if Weapon == nil or type(Weapon) ~= "table" then
+		warn("Invalid weapon table provided")
+		return false
+	end
+	local Tool = Weapon.Tool
+
+	Tool:SetAttribute("State", StateEnum.Idle)
+end
+
+function WeaponService:GetState(Weapon: Weapon): string
+	local Tool = Weapon.Tool
+	return Tool:GetAttribute("State")
+end
+
+-- set state
+function WeaponService:SetState(Weapon: Weapon, State: any)
+	local Tool = Weapon.Tool
+	local OldState = Tool:GetAttribute("State")
+
+	if OldState == State then
+		return
+	end
+
+	Tool:SetAttribute("State", State)
+end
+
 function WeaponService:Verify(Host: Player, Weapon: Weapon, AmmoCheck: boolean)
 	if Weapon == nil or type(Weapon) ~= "table" then
 		warn("Failed check: Invalid weapon table provided", Host)
 		return false
+	end
+
+	local WeaponState = WeaponService:GetState(Weapon)
+
+	if not WeaponState then
+		warn("Failed check: There is no valid state for the weapon.")
+		return
 	end
 
 	-- TODO: Faulty: fix later, maybe?
@@ -107,7 +148,17 @@ end
 function WeaponService.Client:FireWeapon(Player: Player, Weapon: Weapon, FiresTo: Vector3): nil
 	if not WeaponService:Verify(Player, Weapon, true) then
 		warn("User failed check. Reason above ^")
+		return
 	end
+
+	local State = WeaponService:GetState(Weapon)
+
+	if State ~= StateEnum.Idle then
+		warn("Please wait before firing again.")
+		return
+	end
+
+	WeaponService:SetState(Weapon, StateEnum.Firing)
 
 	local Tool = Weapon.Tool
 	local Damage = Tool:GetAttribute("Damage")
@@ -121,6 +172,9 @@ function WeaponService.Client:FireWeapon(Player: Player, Weapon: Weapon, FiresTo
 	local Direction = (FiresTo - Origin).Unit
 
 	local Result = workspace:Raycast(Origin, Direction * 300, Params)
+	task.delay(0.02, function()
+		WeaponService:SetState(Weapon, StateEnum.Idle)
+	end)
 
 	if Result then
 		--RayVisualizer(Origin, Result.Position)
@@ -147,11 +201,45 @@ function WeaponService.Client:FireWeapon(Player: Player, Weapon: Weapon, FiresTo
 	Origin = nil
 	Direction = nil
 	Params = nil
-	--Params:Destroy()
 	Damage = nil
 	Character = nil
 end
 
-function WeaponService:Reload(Player: Player, Weapon: Weapon) end
+function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
+	if not WeaponService:Verify(Player, Weapon, false) then
+		warn("User failed check. Reason above ^")
+		return
+	end
+
+	local State = WeaponService:GetState(Weapon)
+	if State ~= StateEnum.Idle then
+		warn("Please wait before reloading")
+		return
+	end
+
+	if ReloadThreads[Weapon.Tool] then
+		warn("RELOAD: There is a existing reload thread for this tool. Aborting.")
+		return
+	end
+
+	local Tool = Weapon.Tool
+	local Ammo = Tool:GetAttribute("Ammo")
+	local MaxAmmo = Tool:GetAttribute("MaxAmmo")
+	local ReloadTime = Tool:GetAttribute("ReloadTime") or 5
+
+	if Ammo == MaxAmmo then
+		warn("You have full ammo.")
+		return
+	end
+
+	print("Reloading...")
+	WeaponService:SetState(Weapon, StateEnum.Reloading)
+	task.wait(ReloadTime)
+	Tool:SetAttribute("Ammo", MaxAmmo)
+	task.wait(0.09) -- Slight delay to make it feel better
+	print("Reloaded")
+	WeaponService:SetState(Weapon, StateEnum.Idle)
+	return true
+end
 
 return WeaponService
