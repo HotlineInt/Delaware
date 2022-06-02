@@ -266,6 +266,7 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 			task.wait(0.09) -- Slight delay to make it feel better
 			print("Reloaded")
 			WeaponService:SetState(Weapon, StateEnum.Idle)
+			TermSignal:Fire("Completed")
 			return ReturnType
 		end),
 		TermSignal,
@@ -273,13 +274,13 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 	local Connection
 	Connection = TermSignal:Connect(function(Result)
 		Connection:Disconnect()
-		ReloadThreads[Tool] = nil
 		if Result == "Cancelled" then
 			print("Ouch!")
 			task.wait(0.09)
 			WeaponService:SetState(Weapon, StateEnum.Idle)
 			return false
 		elseif Result == "Completed" then
+			ReloadThreads[Tool] = nil
 			return true
 		end
 	end)
