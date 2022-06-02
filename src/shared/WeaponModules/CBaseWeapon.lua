@@ -33,6 +33,7 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 		error(string.format("Invalid ViewModel provided for %s", Tool.Name))
 	end
 
+	self.Connections = {}
 	self.UsesAmmo = true
 	self.Tool = Tool
 	self.Reloading = false
@@ -42,7 +43,7 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 	self.Ammo = Ammo
 	self.RPM = 1200
 	self.Firing = true
-	self.ViewModel = ViewModel
+	self.ViewModel = ViewModel:Clone()
 
 	WeaponsService:RegisterWeapon(self)
 end
@@ -89,7 +90,7 @@ end
 function CBaseWeapon:Reload()
 	if self.Ammo < self.MaxAmmo then
 		self.Reloading = true
-		local ReloadSuccess = WeaponsService:Reload(self)
+		WeaponsService:Reload(self):await()
 		self.Reloading = false
 	end
 end
