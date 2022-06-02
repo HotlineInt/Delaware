@@ -1,3 +1,6 @@
+local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
+local Signal = require(Carbon.Util.Signal)
+
 local Players = game:GetService("Players")
 local WeaponService = {
 	Client = {},
@@ -58,6 +61,25 @@ function WeaponService.Client:RegisterWeapon(Player: Player, Weapon: Weapon)
 	local Tool = Weapon.Tool
 
 	Tool:SetAttribute("State", StateEnum.Idle)
+end
+
+function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Weapon)
+	if Weapon == nil or type(Weapon) ~= "table" then
+		warn("Invalid weapon table provided")
+		return false
+	end
+	local Tool = Weapon.Tool
+	local ReloadThread = ReloadThreads[Tool]
+
+	if ReloadThread then
+		local Thread, Signal = ReloadThread[1], ReloadThread[2]
+
+		-- Fire SIGTERM signal
+		Signal:Fire("Cancelled")
+
+		-- Cancel thread
+		task.cancel(Thread)
+	end
 end
 
 function WeaponService:GetState(Weapon: Weapon): string
@@ -232,14 +254,35 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 		return
 	end
 
+	local TermSignal = Signal.new()
+	local ReturnType = true
+
 	print("Reloading...")
 	WeaponService:SetState(Weapon, StateEnum.Reloading)
-	task.wait(ReloadTime)
-	Tool:SetAttribute("Ammo", MaxAmmo)
-	task.wait(0.09) -- Slight delay to make it feel better
-	print("Reloaded")
-	WeaponService:SetState(Weapon, StateEnum.Idle)
-	return true
+	ReloadThreads[Tool] = {
+		task.spawn(function()
+			task.wait(ReloadTime)
+			Tool:SetAttribute("Ammo", MaxAmmo)
+			task.wait(0.09) -- Slight delay to make it feel better
+			print("Reloaded")
+			WeaponService:SetState(Weapon, StateEnum.Idle)
+			return ReturnType
+		end),
+		TermSignal,
+	}
+	local Connection
+	Connection = TermSignal:Connect(function(Result)
+		Connection:Disconnect()
+		ReloadThreads[Tool] = nil
+		if Result == "Cancelled" then
+			print("Ouch!")
+			task.wait(0.09)
+			WeaponService:SetState(Weapon, StateEnum.Idle)
+			return false
+		elseif Result == "Completed" then
+			return true
+		end
+	end)
 end
 
 return WeaponService

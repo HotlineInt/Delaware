@@ -52,6 +52,7 @@ function CBaseWeapon:Equip()
 end
 
 function CBaseWeapon:Dequip()
+	WeaponsService:WeaponUnequipped(self)
 	print("Based")
 end
 
