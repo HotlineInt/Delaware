@@ -11,15 +11,12 @@ local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon
 
 -- get player from Carbon
 local Player = Carbon:GetPlayer()
-
--- get knit bridge
-local Knit = require(Carbon.Framework.Knit)
--- -- get WeaponsService
-local WeaponsService = Knit:GetService("WeaponsService")
 -- get viewmodels folder from ReplicatedStorage
 local ViewModels = game:GetService("ReplicatedStorage"):WaitForChild("ViewModels")
 -- get weapons folder from ReplicatedStorage
 local WeaponModules = game:GetService("ReplicatedStorage"):WaitForChild("WeaponModules")
+
+local WeapoNHud = require(script.WeaponHud)
 
 local CombatSys = {
 	CurrentWeapon = nil,
@@ -63,6 +60,10 @@ function CombatSys:Load()
 	ContextActionService:BindAction("Mouse", function(...)
 		self:HandleAction(...)
 	end, false, Enum.UserInputType.MouseButton1)
+
+	ContextActionService:BindAction("Update", function(...)
+		self:HandleAction(...)
+	end, false, Enum.KeyCode.F3)
 
 	ContextActionService:BindAction("Reload", function(...)
 		self:HandleAction(...)
@@ -135,6 +136,12 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 		return
 	end
 
+	print(ActionName, InputState)
+	if ActionName == "Update" and InputState == Enum.UserInputState.End then
+		print("bruh")
+		self.States.ShouldUpdate = not self.States.ShouldUpdate
+	end
+
 	if ActionName == "Reload" and InputState == Enum.UserInputState.Begin then
 		self:ReloadWeapon()
 	end
@@ -176,10 +183,20 @@ function CombatSys:AddWeapon(Tool: Tool): Weapon
 
 	-- create weapon
 	local Weapon = WeaponModule.new(Tool)
+	local MountPoint = Weapon.ViewModel:FindFirstChild("AmmoCounter")
+	local Hud = WeapoNHud.new(MountPoint)
+	Weapon.HUD = Hud
+	Hud:SetStats(Weapon.Ammo, Weapon.MaxAmmo)
 
 	-- add weapon class to self.LoadedWeapons
 	self.LoadedTools[Tool] = true
 	self.LoadedWeapons[Tool.Name] = Weapon
+
+	-- ammo attribute property changd signal
+	Weapon.Connections["AmmoChange"] = Tool:GetAttributeChangedSignal("Ammo"):Connect(function()
+		local NewAmmo = Tool:GetAttribute("Ammo")
+		Hud:SetStats(NewAmmo, Weapon.MaxAmmo)
+	end)
 
 	return Weapon
 end
@@ -238,7 +255,6 @@ function CombatSys:FireWeapon()
 	end
 
 	CurrentWeapon:Fire()
-	self:SetStat("Ammo", CurrentAmmo - 1)
 end
 
 function CombatSys:EquipWeapon(Weapon: Weapon)
@@ -263,7 +279,7 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 	self.CurrentWeapon = Weapon
 
 	print("setting viewmodel")
-	local ViewModel = Weapon.ViewModel:Clone()
+	local ViewModel = Weapon.ViewModel
 	ViewModel.Parent = Camera
 	self.CurrentWeapon.ViewModel = ViewModel
 
@@ -282,6 +298,7 @@ function CombatSys:ReloadWeapon()
 		return
 	end
 
+	local HUD = CurrentWeapon.HUD
 	-- get state
 	local State = self:GetState()
 
@@ -292,7 +309,11 @@ function CombatSys:ReloadWeapon()
 	end
 
 	self.States.ShouldFire = false
+	HUD:SetStats("--", "--")
 	CurrentWeapon:Reload()
+	local NewAmmo = CurrentWeapon:GetStat("Ammo")
+	HUD:SetStats(NewAmmo, CurrentWeapon.MaxAmmo)
+	NewAmmo = nil
 end
 
 function CombatSys:DequipWeapon()
