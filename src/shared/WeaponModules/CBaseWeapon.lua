@@ -57,8 +57,8 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 	end
 
 	for _, Sound in pairs(Sounds:GetChildren()) do
-		if not Sound:IsA("Sound") then
-			self[Sound.Name] = Sound
+		if Sound:IsA("Sound") then
+			self.Sounds[Sound.Name] = Sound
 		end
 	end
 
@@ -103,10 +103,6 @@ function CBaseWeapon:PlayAnimation(AnimationName: string, Loop: boolean)
 
 	if Animation then
 		Animation:Play()
-
-		-- copilot:
-		--Animation:AdjustSpeed(self.RPM / 60)
-		Animation:Play(Loop)
 		return Animation
 	end
 end
@@ -120,8 +116,21 @@ function CBaseWeapon:StopAnimation(AnimationName: string)
 	end
 end
 
+-- play sound method
+function CBaseWeapon:PlaySound(SoundName: string)
+	local Sound = self.Sounds[SoundName]
+
+	if Sound then
+		print("Playing back weapon sound: " .. SoundName)
+		Sound:Play()
+	else
+		print("Missing sound jack: " .. SoundName)
+	end
+end
+
 function CBaseWeapon:Equip()
 	local EquipAnim: AnimationTrack = self:PlayAnimation("Equip")
+	self:PlaySound("Equip")
 	print("yahoo")
 	--EquipAnim.Stopped:Wait()
 	self:PlayAnimation("Idle")
@@ -133,6 +142,7 @@ end
 function CBaseWeapon:Dequip()
 	self:StopAnimation("Idle")
 	WeaponsService:WeaponUnequipped(self)
+	self:PlaySound("Dequip")
 	self:PlayAnimation("Deequip")
 	print("Based")
 end
@@ -161,6 +171,7 @@ function CBaseWeapon:Fire()
 	if self.Ammo >= 0 then
 		self.Firing = false
 		self:PlayAnimation("Shoot")
+		self:PlaySound("Shoot")
 		WeaponsService:FireWeapon(self, Mouse.Hit.Position)
 		self.Ammo = self:GetStat("Ammo")
 	else
@@ -172,6 +183,7 @@ function CBaseWeapon:Reload()
 	if self.Ammo < self.MaxAmmo then
 		self.Reloading = true
 		self:PlayAnimation("Reload")
+		self:PlaySound("Reload")
 		WeaponsService:Reload(self):await()
 		self.Reloading = false
 	end
