@@ -103,6 +103,7 @@ function CBaseWeapon:PlayAnimation(AnimationName: string, Loop: boolean)
 
 	if Animation then
 		Animation:Play()
+		WeaponsService:PlayAnimation(self, AnimationName)
 		return Animation
 	end
 end
