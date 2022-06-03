@@ -14,7 +14,7 @@ if LaunchTestEnv then
 	return
 end
 
-local TEST = Carbon:IsStudio()
+local TEST = true -- True for now. -- Carbon:IsStudio()
 
 Carbon:RegisterModule(script.Parent.Notification)
 Carbon:RegisterModule(script.Parent.Console)
