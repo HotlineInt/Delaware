@@ -24,15 +24,42 @@ local StateEnum = {
 }
 
 local Effects = require(script.Effects)
-local RayVisualizer = require(script.Parent.Parent.Visualizers.RayVisualizer)
+--local RayVisualizer = require(script.Parent.Parent.Visualizers.RayVisualizer)
 
 local ReloadThreads = {}
+local Connections = {}
+local AnimationTracks = {}
 
--- Hat pass, really messy
+-- Player pass, really messy
 -- All to just make hats not be taken into account while casting a ray....
+
+-- and all to just ensure that memory leaks wont occur.... ouch!
+
 function WeaponService:KnitStart()
 	Players.PlayerAdded:Connect(function(Player: Player)
-		Player.CharacterAdded:Connect(function(Character: Model)
+		AnimationTracks[Player] = {}
+		Connections[Player] = {}
+
+		Connections[Player]["CharacterAdded"] = Player.CharacterAdded:Connect(function(Character: Model)
+			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+
+			Connections[Player]["HumanoidDied"] = Humanoid.Died:Connect(function()
+				for _, ToolTracks in pairs(AnimationTracks[Player]) do
+					for _, Track: AnimationTrack in pairs(ToolTracks) do
+						Track:Stop()
+					end
+					AnimationTracks[Player][ToolTracks] = nil
+					local ReloadThread = ReloadThreads[ToolTracks]
+
+					if ReloadThread then
+						local SIGTERM = ReloadThread[2]
+						SIGTERM:Fire("Cancelled")
+						SIGTERM = nil
+						ReloadThread = nil
+					end
+				end
+			end)
+
 			task.defer(function()
 				for _, Hat in pairs(Character:GetChildren()) do
 					if Hat:IsA("Accessory") then
@@ -54,6 +81,18 @@ function WeaponService:KnitStart()
 			end)
 		end)
 	end)
+
+	-- Cleanup their messses
+	Players.PlayerRemoving:Connect(function(Player: Player)
+		local Connections = Connections[Player]
+
+		for _, Connection: RBXScriptConnection in pairs(Connections) do
+			Connection:Disconnect()
+			AnimationTracks[Player] = nil
+		end
+
+		-- TODO: Implement reload thread cleanup
+	end)
 end
 
 function WeaponService.Client:RegisterWeapon(Player: Player, Weapon: Weapon)
@@ -62,6 +101,19 @@ function WeaponService.Client:RegisterWeapon(Player: Player, Weapon: Weapon)
 		return false
 	end
 	local Tool = Weapon.Tool
+
+	if not AnimationTracks[Player][Tool] then
+		AnimationTracks[Player][Tool] = {}
+	end
+
+	local HostAnimator: Animator = Player.Character:FindFirstChild("Humanoid"):FindFirstChild("Animator")
+	local Animations = Tool:FindFirstChild("Animations")
+
+	for _, Animation: Animation in pairs(Animations:GetChildren()) do
+		local Track = HostAnimator:LoadAnimation(Animation)
+		AnimationTracks[Player][Tool][Animation.Name] = Track
+		warn(string.format("Registered animation %s for %s", Animation.Name, Tool.Name))
+	end
 
 	Tool:SetAttribute("State", StateEnum.Idle)
 end
@@ -100,6 +152,21 @@ function WeaponService:SetState(Weapon: Weapon, State: any)
 	end
 
 	Tool:SetAttribute("State", State)
+end
+
+function WeaponService:GetAnimation(Player: Player, Weapon: Weapon, Animation: string)
+	local Track = AnimationTracks[Player][Weapon.Tool]
+	return Track[Animation]
+end
+
+function WeaponService.Client:PlayAnimation(Player: Player, Weapon: Weapon, Animation: string)
+	local Track = WeaponService:GetAnimation(Player, Weapon, Animation)
+
+	if Track then
+		Track:Play()
+	else
+		warn("Server could not find the following animation :V " .. Animation)
+	end
 end
 
 function WeaponService:Verify(Host: Player, Weapon: Weapon, AmmoCheck: boolean)
@@ -189,6 +256,7 @@ function WeaponService.Client:FireWeapon(Player: Player, Weapon: Weapon, FiresTo
 	local Damage = Tool:GetAttribute("Damage")
 
 	local Character = Player.Character
+
 	local Params: RaycastParams = RaycastParams.new()
 	Params.FilterType = Enum.RaycastFilterType.Blacklist
 	Params.FilterDescendantsInstances = { Character }
@@ -237,6 +305,7 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 	end
 
 	local State = WeaponService:GetState(Weapon)
+	local ReloadAnim = WeaponService:GetAnimation(Player, Weapon, "Reload")
 	if State ~= StateEnum.Idle then
 		warn("Please wait before reloading")
 		return
@@ -264,6 +333,7 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 	WeaponService:SetState(Weapon, StateEnum.Reloading)
 	ReloadThreads[Tool] = {
 		task.spawn(function()
+			ReloadAnim:Play()
 			task.wait(ReloadTime)
 			Tool:SetAttribute("Ammo", MaxAmmo)
 			task.wait(0.09) -- Slight delay to make it feel better
@@ -276,7 +346,7 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 	}
 	local Result = TermSignal:Wait()
 	if Result == "Cancelled" then
-		print("Ouch!")
+		ReloadAnim:Stop()
 	elseif Result == "Completed" then
 		ReloadThreads[Tool] = nil
 	end
