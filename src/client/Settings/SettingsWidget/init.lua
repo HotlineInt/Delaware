@@ -18,6 +18,13 @@ function SettingsWidget:Load()
 		ResetOnSpawn = false,
 		IgnoreGuiInset = true,
 		[CUI.Children] = {
+			CUI:CreateElement("TextButton", {
+				Size = UDim2.new(1, 0, 1, 0),
+				TextTransparency = 1,
+				BackgroundTransparency = 1,
+				Modal = true,
+				Visible = true,
+			}),
 			CUI:CreateElement("Frame", {
 				BackgroundColor3 = Color3.new(),
 				Name = "Container",
@@ -45,8 +52,9 @@ function SettingsWidget:Load()
 
 	UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
 		if input.KeyCode == Enum.KeyCode.Tab then
-			local Enabled = self.Widget:GetProperty("Enabled")
-			self:SetEnabled(not Enabled)
+			local Enabled = not self.Widget:GetProperty("Enabled")
+			UserInputService.MouseIconEnabled = Enabled
+			self:SetEnabled(Enabled)
 		end
 	end)
 	self:LoadSettings()
