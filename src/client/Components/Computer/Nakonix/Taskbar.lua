@@ -2,6 +2,9 @@ local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon
 local CUI = require(Carbon.UI.CUI)
 
 return function(Props: table)
+	local Nakonix = Props.Nakonix
+	local StartMenu = Props.StartMenu
+
 	return CUI:CreateElement("Frame", {
 		Name = "Taskbar",
 		-- white background
@@ -23,7 +26,7 @@ return function(Props: table)
 				Position = UDim2.new(0, 0, 0, 0),
 				--AnchorPoint = Vector2.new(1, 0),
 				[CUI.OnEvent("Activated")] = function()
-					print("nyanners")
+					StartMenu:SetProperty("Visible", not StartMenu:GetProperty("Visible"))
 				end,
 			}),
 		},
