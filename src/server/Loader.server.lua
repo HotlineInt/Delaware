@@ -1,3 +1,6 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ComponentLoader = require(ReplicatedStorage:WaitForChild("ComponentLoader"))
+
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local Knit = require(Carbon.Framework.Knit)
 
@@ -18,3 +21,5 @@ end
 warn("Loaded %d services", TotalServices)
 
 Knit:Start({ ServicePromises = false })
+
+ComponentLoader(script.Parent.Components)

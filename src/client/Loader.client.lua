@@ -2,9 +2,16 @@ script.Parent:RemoveDefaultLoadingScreen()
 --local Playerlist = require(script.Parent:WaitForChild("Playerlist"))
 local Camera = workspace.CurrentCamera
 local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local ComponentLoader = require(ReplicatedStorage:WaitForChild("ComponentLoader"))
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local Knit = require(Carbon.Framework.Knit)
+
+local Vendor = game:GetService("ReplicatedStorage"):WaitForChild("Vendor")
+local TopbarPlus = require(Vendor.TopbarPlus)
+
+local TestCrap = TopbarPlus.mimic("Backpack")
 
 local LaunchTestEnv = false
 
@@ -33,6 +40,7 @@ Knit:Start():andThen(function()
 	end
 
 	Carbon:Start()
+	ComponentLoader(script.Parent.Components)
 end)
 
 --Carbon.Modules["CombatSystem"]:EquipWeapon(Carbon.Modules.CombatSystem.LoadedWeapons["Pistol"])
