@@ -20,6 +20,7 @@ local CombatSys = {
 	CurrentWeapon = nil,
 	LoadedWeapons = {},
 	LoadedTools = {},
+	TimeSinceLastFire = 0,
 	States = {
 		CanEquip = false,
 		ShouldUpdate = false,
@@ -71,19 +72,19 @@ function CombatSys:Load()
 		self:HandleAction(...)
 	end, false, Enum.KeyCode.R)
 
-	task.spawn(function()
-		while true do
-			local CurrentWeapon = self.CurrentWeapon
+	-- Very janky automatic loop
+	-- task.spawn(function()
+	-- 	while true do
+	-- 		local CurrentWeapon = self.CurrentWeapon
 
-			if self.States.ShouldFire and CurrentWeapon then
-				print("pew pew time")
-				self:FireWeapon()
-				task.wait(60 / CurrentWeapon.RPM)
-			end
+	-- 		if self.States.ShouldFire and CurrentWeapon then
+	-- 			self:FireWeapon()
+	-- 			task.wait(60 / CurrentWeapon.RPM)
+	-- 		end
 
-			task.wait()
-		end
-	end)
+	-- 		task.wait()
+	-- 	end
+	-- end)
 end
 
 function CombatSys:OnCharacterAdded(Character: Model)
@@ -350,7 +351,8 @@ function CombatSys:DequipWeapon()
 	self.States.ShouldUpdate = false
 	-- Check if there's an current weapon available
 	if not self.CurrentWeapon then
-		error("Cannot dequip with no weapon equipped")
+		-- debug error. I'm sorry.
+		--error("Cannot dequip with no weapon equipped")
 		return
 	end
 
@@ -364,7 +366,7 @@ function CombatSys:DequipWeapon()
 	self.CurrentWeapon = nil
 end
 
-function CombatSys:Update()
+function CombatSys:Update(DeltaTime: number)
 	local CurrentWeapon: Weapon = self.CurrentWeapon
 	if not CurrentWeapon then
 		return
@@ -373,6 +375,17 @@ function CombatSys:Update()
 	if self.States.ShouldUpdate then
 		local ViewModel: Model = CurrentWeapon.ViewModel
 		ViewModel:SetPrimaryPartCFrame(Camera.CFrame)
+	end
+
+	if self.States.ShouldFire then
+		local Now = tick()
+
+		if Now - self.TimeSinceLastFire >= 60 / CurrentWeapon.RPM then
+			self.TimeSinceLastFire = Now
+			self:FireWeapon()
+			--else
+			--self.TimeSinceLastFire = 0
+		end
 	end
 end
 
