@@ -91,7 +91,6 @@ function Console:Load()
 	print("Executing autoexec")
 
 	for command in autoexec:gmatch("[^\n].*$") do
-		print("> " .. command)
 		Console:ExecuteCommand(command, {})
 	end
 
