@@ -155,6 +155,7 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 	if not self.CurrentWeapon then
 		return
 	end
+	local Weapon = self.CurrentWeapon
 
 	print(ActionName, InputState)
 	if ActionName == "Update" and InputState == Enum.UserInputState.End then
@@ -167,11 +168,17 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 	end
 
 	if ActionName == "Mouse" and InputState == Enum.UserInputState.Begin then
-		self.States.ShouldFire = true
+		if Weapon.FireMode == "Automatic" then
+			self.States.ShouldFire = true
+		else
+			self:FireWeapon()
+		end
 	elseif
 		ActionName == "Mouse" and InputState == Enum.UserInputState.End or InputState == Enum.UserInputState.Cancel
 	then
-		self.States.ShouldFire = false
+		if Weapon.FireMode == "Automatic" then
+			self.States.ShouldFire = false
+		end
 	end
 end
 
@@ -379,8 +386,19 @@ function CombatSys:Update(DeltaTime: number)
 
 	if self.States.ShouldFire then
 		local Now = tick()
+		local RPMMath = 60 / CurrentWeapon.RPM - DeltaTime
+		--print(RPMMath, RPMMath * DeltaTime)
+		--* DeltaTime
 
-		if Now - self.TimeSinceLastFire >= 60 / CurrentWeapon.RPM then
+		-- print(
+		-- 	string.format(
+		-- 		"Now - self.LastTime %d %s %d",
+		-- 		Now - self.TimeSinceLastFire,
+		-- 		tostring(Now - self.TimeSinceLastFire >= RPMMath),
+		-- 		RPMMath
+		-- 	)
+		-- )
+		if Now - self.TimeSinceLastFire >= RPMMath then
 			self.TimeSinceLastFire = Now
 			self:FireWeapon()
 			--else
