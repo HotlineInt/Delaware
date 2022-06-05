@@ -6,6 +6,9 @@
 local Camera = workspace.CurrentCamera
 
 -- get carbon
+
+local Notification = require(script.Parent.Notification)
+local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
@@ -26,6 +29,7 @@ local CombatSys = {
 		ShouldUpdate = false,
 		ShouldFire = false,
 	},
+	GlobalOffset = Vector3.new(),
 }
 local HumanoidDiedConnection
 
@@ -277,8 +281,12 @@ function CombatSys:FireWeapon()
 
 	if CurrentAmmo <= 0 then
 		self.States.ShouldFire = false
-		print("Can't fire.")
+		Notification:Notify("Out of ammo")
 		return
+	end
+
+	if CurrentWeapon.CanRecoil then
+		CurrentWeapon.Springs.Recoil:Shove(CurrentWeapon.RecoilConfig)
 	end
 
 	CurrentWeapon:Fire()
@@ -380,8 +388,20 @@ function CombatSys:Update(DeltaTime: number)
 	end
 
 	if self.States.ShouldUpdate then
+		local MouseDelta = UserInputService:GetMouseDelta()
 		local ViewModel: Model = CurrentWeapon.ViewModel
-		ViewModel:SetPrimaryPartCFrame(Camera.CFrame)
+		local Sway = CurrentWeapon.Springs.Sway:Update(DeltaTime)
+		CurrentWeapon.Springs.Sway:Shove(Vector3.new(MouseDelta.X / 200, MouseDelta.Y / 200))
+		local Recoil = CurrentWeapon.Springs.Recoil:Update(DeltaTime)
+		local ViewBob = math.sin(tick()) + 0.5
+
+		if CurrentWeapon.CanRecoil then
+			local X, Y, Z = Recoil.X, Recoil.Y, Recoil.Z --CurrentWeapon.RecoilConfig.X, CurrentWeapon.RecoilConfig.Y, CurrentWeapon.RecoilConfig.Z
+			Camera.CFrame *= CFrame.Angles(X, Y, Z)
+		end
+
+		ViewModel:PivotTo(Camera.CFrame * CFrame.new(Vector3.new(0, ViewBob, 0)))
+		ViewModel:SetPrimaryPartCFrame(ViewModel.PrimaryPart.CFrame * CFrame.Angles(0, -Sway.x, Sway.y))
 	end
 
 	if self.States.ShouldFire then
