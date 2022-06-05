@@ -3,7 +3,7 @@
 # Roblox Model Files 
 *.rbxm
 # Packages
-/Packages
+# /Packages
 
 # Place Lock Files
 *.rbxl.lock
