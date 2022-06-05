@@ -24,6 +24,7 @@ local StateEnum = {
 }
 
 local Effects = require(script.Effects)
+local WorldModelUtil = require(script.WorldModels)
 --local RayVisualizer = require(script.Parent.Parent.Visualizers.RayVisualizer)
 
 local ReloadThreads = {}
@@ -37,6 +38,7 @@ local AnimationTracks = {}
 
 function WeaponService:KnitStart()
 	Players.PlayerAdded:Connect(function(Player: Player)
+		WorldModelUtil:InitialiePlayerTable(Player)
 		AnimationTracks[Player] = {}
 		Connections[Player] = {}
 
@@ -118,57 +120,6 @@ function WeaponService.Client:RegisterWeapon(Player: Player, Weapon: Weapon)
 	Tool:SetAttribute("State", StateEnum.Idle)
 end
 
-function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Weapon)
-	if Weapon == nil or type(Weapon) ~= "table" then
-		warn("Invalid weapon table provided")
-		return false
-	end
-	local Tool = Weapon.Tool
-	local ReloadThread = ReloadThreads[Tool]
-
-	if ReloadThread then
-		local Thread, Signal = ReloadThread[1], ReloadThread[2]
-
-		-- Fire SIGTERM signal
-		Signal:Fire("Cancelled")
-
-		-- Cancel thread
-		task.cancel(Thread)
-	end
-end
-
-function WeaponService:GetState(Weapon: Weapon): string
-	local Tool = Weapon.Tool
-	return Tool:GetAttribute("State")
-end
-
--- set state
-function WeaponService:SetState(Weapon: Weapon, State: any)
-	local Tool = Weapon.Tool
-	local OldState = Tool:GetAttribute("State")
-
-	if OldState == State then
-		return
-	end
-
-	Tool:SetAttribute("State", State)
-end
-
-function WeaponService:GetAnimation(Player: Player, Weapon: Weapon, Animation: string)
-	local Track = AnimationTracks[Player][Weapon.Tool]
-	return Track[Animation]
-end
-
-function WeaponService.Client:PlayAnimation(Player: Player, Weapon: Weapon, Animation: string)
-	local Track = WeaponService:GetAnimation(Player, Weapon, Animation)
-
-	if Track then
-		Track:Play()
-	else
-		warn("Server could not find the following animation :V " .. Animation)
-	end
-end
-
 function WeaponService:Verify(Host: Player, Weapon: Weapon, AmmoCheck: boolean)
 	if Weapon == nil or type(Weapon) ~= "table" then
 		warn("Failed check: Invalid weapon table provided", Host)
@@ -228,6 +179,86 @@ function WeaponService:Verify(Host: Player, Weapon: Weapon, AmmoCheck: boolean)
 	Host = nil
 
 	return true
+end
+
+function WeaponService.Client:WeaponEquipped(Player: Player, Weapon: Weapon)
+	if Weapon == nil or type(Weapon) ~= "table" then
+		warn("Invalid weapon table provided")
+		return false
+	end
+
+	if not WeaponService:Verify(Player, Weapon, false) then
+		error("Failed check: Weapon Invalid: Equipped")
+		return
+	end
+
+	local Tool = Weapon.Tool
+	local WorldModel = Tool:GetAttribute("WorldModel")
+
+	WorldModelUtil:AddWorldModel(Player, Tool, WorldModel)
+end
+
+function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Weapon)
+	if Weapon == nil or type(Weapon) ~= "table" then
+		warn("Invalid weapon table provided")
+		return false
+	end
+	local Tool = Weapon.Tool
+	local ReloadThread = ReloadThreads[Tool]
+
+	if ReloadThread then
+		local Thread, Signal = ReloadThread[1], ReloadThread[2]
+
+		-- Fire SIGTERM signal
+		Signal:Fire("Cancelled")
+
+		-- Cancel thread
+		task.cancel(Thread)
+	end
+
+	WorldModelUtil:RemoveWorldModel(Player, Tool)
+end
+
+function WeaponService:GetState(Weapon: Weapon): string
+	local Tool = Weapon.Tool
+	return Tool:GetAttribute("State")
+end
+
+-- set state
+function WeaponService:SetState(Weapon: Weapon, State: any)
+	local Tool = Weapon.Tool
+	local OldState = Tool:GetAttribute("State")
+
+	if OldState == State then
+		return
+	end
+
+	Tool:SetAttribute("State", State)
+end
+
+function WeaponService:GetAnimation(Player: Player, Weapon: Weapon, Animation: string)
+	local Track = AnimationTracks[Player][Weapon.Tool]
+	return Track[Animation]
+end
+
+function WeaponService.Client:PlayAnimation(Player: Player, Weapon: Weapon, Animation: string)
+	local Track = WeaponService:GetAnimation(Player, Weapon, Animation)
+
+	if Track then
+		Track:Play()
+	else
+		warn("Server could not find the following animation :V " .. Animation)
+	end
+end
+
+function WeaponService.Client:StopAnimation(Player: Player, Weapon: Weapon, Animation: string)
+	local Track = WeaponService:GetAnimation(Player, Weapon, Animation)
+
+	if Track then
+		Track:Stop()
+	else
+		warn("Server could not find the following animation :V " .. Animation)
+	end
 end
 
 function WeaponService:GetHumanoid(Instance: BasePart): Humanoid | nil
