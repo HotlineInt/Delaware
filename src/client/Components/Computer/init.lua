@@ -27,9 +27,11 @@ function Computer:Construct()
 	)
 	self.ViewTween = ViewTween
 
-	local Nakonix = Nakonix.new(Monitor)
+	local Nakonix = Nakonix.new(Monitor, self)
+	local Gui = Nakonix.Gui
 	local Surface = Nakonix.Surface
 
+	self.Gui = Gui
 	self.Nakonix = Nakonix
 	self.Surface = Surface
 
@@ -50,7 +52,7 @@ function Computer:Enter(Player: Player)
 		return
 	end
 
-	self.Surface:SetProperty("AlwaysOnTop", true)
+	self.Gui:SetProperty("AlwaysOnTop", true)
 
 	Humanoid:UnequipTools()
 
@@ -62,7 +64,7 @@ function Computer:Enter(Player: Player)
 end
 
 function Computer:Exit()
-	self.Surface:SetProperty("AlwaysOnTop", false)
+	self.Gui:SetProperty("AlwaysOnTop", false)
 	self.Prompt.Enabled = true
 	Camera.CameraType = Enum.CameraType.Custom
 	UserInputService.MouseIconEnabled = false
