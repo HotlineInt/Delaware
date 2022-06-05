@@ -1,3 +1,6 @@
 [submodule "Carbon"]
 	path = Carbon
 	url = https://github.com/HotlineInt/Carbon
+[submodule "Packages/TopbarPlus"]
+	path = Packages/TopbarPlus
+	url = https://github.com/HotlineInt/TopbarPlus

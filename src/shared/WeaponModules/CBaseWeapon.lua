@@ -22,7 +22,7 @@ local Class = require(Carbon.Util.Class)
 local CBaseWeapon = Class("CBaseWeapon")
 
 local ValidSounds = {
-	"Shoot",
+	"Fire",
 	"Reload",
 	"Equip",
 	"Unequip",
@@ -84,7 +84,7 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 	self.FireMode = FireMode
 	self.MaxAmmo = MaxAmmo
 	self.Ammo = Ammo
-	self.RPM = 1200
+	self.RPM = 700
 	self.Firing = true
 
 	WeaponsService:RegisterWeapon(self)
@@ -113,6 +113,7 @@ function CBaseWeapon:StopAnimation(AnimationName: string)
 	local Animation = self.Animations[AnimationName]
 
 	if Animation then
+		WeaponsService:StopAnimation(self, AnimationName)
 		Animation:Stop()
 	end
 end
@@ -123,7 +124,15 @@ function CBaseWeapon:PlaySound(SoundName: string)
 
 	if Sound then
 		print("Playing back weapon sound: " .. SoundName)
-		Sound:Play()
+		local Clone = Sound:Clone()
+		Clone.Parent = Sound.Parent
+
+		Clone:Play()
+		local Stopped
+		Stopped = Clone.Stopped:Connect(function()
+			Clone:Destroy()
+			Stopped:Disconnect()
+		end)
 	else
 		print("Missing sound jack: " .. SoundName)
 	end
@@ -132,6 +141,7 @@ end
 function CBaseWeapon:Equip()
 	local EquipAnim: AnimationTrack = self:PlayAnimation("Equip")
 	self:PlaySound("Equip")
+	WeaponsService:WeaponEquipped(self)
 	print("yahoo")
 	--EquipAnim.Stopped:Wait()
 	self:PlayAnimation("Idle")
@@ -171,10 +181,13 @@ function CBaseWeapon:Fire()
 
 	if self.Ammo >= 0 then
 		self.Firing = false
-		self:PlayAnimation("Shoot")
+		self:PlayAnimation("Fire")
 		self:PlaySound("Shoot")
-		WeaponsService:FireWeapon(self, Mouse.Hit.Position)
-		self.Ammo = self:GetStat("Ammo")
+		task.spawn(function()
+			print("Is this even running?")
+			WeaponsService:FireWeapon(self, Mouse.Hit.Position)
+			self.Ammo = self:GetStat("Ammo")
+		end)
 	else
 		print("nah bro")
 	end
