@@ -6,6 +6,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local ComponentLoader = require(ReplicatedStorage:WaitForChild("ComponentLoader"))
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
+local ChatUtil = require(Carbon.Util.Chat)
+
 local Knit = require(Carbon.Framework.Knit)
 
 local Vendor = game:GetService("ReplicatedStorage"):WaitForChild("Vendor")
@@ -20,6 +22,14 @@ if LaunchTestEnv then
 	TestRunner:Begin()
 	return
 end
+
+local LocalizedTags = {
+	["tag_supporter"] = "Supporter",
+	["tag_debugger"] = "Debugger",
+	["tag_mod"] = "Moderator",
+}
+
+local YOU_HAVE_MESSAGE = "DEBUG MESSAGE: You have the following tags: %s"
 
 local TEST = true -- True for now. -- Carbon:IsStudio()
 
@@ -41,35 +51,26 @@ Knit:Start():andThen(function()
 
 	Carbon:Start()
 	ComponentLoader(script.Parent.Components)
+
+	-- Tag checking
+	local TagService = Knit:GetService("TagService")
+	TagService:GetTags():andThen(function(SelfTags: {})
+		local JoinedTags = ""
+		local Count = #SelfTags
+
+		for Index, Tag in ipairs(SelfTags) do
+			if Index ~= Count then
+				print(",")
+				JoinedTags = JoinedTags .. Tag .. ", "
+			elseif Index == Count then
+				print("eol")
+				JoinedTags = JoinedTags .. Tag
+			end
+		end
+
+		ChatUtil:MakeSystemMessage(string.format(YOU_HAVE_MESSAGE, JoinedTags))
+	end)
 end)
-
---Carbon.Modules["CombatSystem"]:EquipWeapon(Carbon.Modules.CombatSystem.LoadedWeapons["Pistol"])
--- local Info = TweenInfo.new(0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.InOut)
--- local StartFOV = Camera.FieldOfView
--- local ZoomAnimations = {
--- 	ZoomIn = TweenService:Create(Camera, Info, { FieldOfView = 15 }),
--- 	ZoomOut = TweenService:Create(Camera, Info, { FieldOfView = StartFOV }),
--- }
-
--- UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
--- 	if gameProcessedEvent then
--- 		return
--- 	end
-
--- 	if input.UserInputType == Enum.UserInputType.MouseButton2 then
--- 		ZoomAnimations.ZoomIn:Play()
--- 	end
--- end)
-
--- UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
--- 	if gameProcessedEvent then
--- 		return
--- 	end
-
--- 	if input.UserInputType == Enum.UserInputType.MouseButton2 then
--- 		ZoomAnimations.ZoomOut:Play()
--- 	end
--- end)
 
 Camera.FieldOfView = 90
 --StarterGui:SetCore("TopbarEnabled", false)
@@ -77,4 +78,5 @@ Camera.FieldOfView = 90
 -- debug purposes only !!
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
 UserInputService.MouseIconEnabled = false
