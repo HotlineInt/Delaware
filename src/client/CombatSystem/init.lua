@@ -400,7 +400,7 @@ function CombatSys:Update(DeltaTime: number)
 			Camera.CFrame *= CFrame.Angles(X, Y, Z)
 		end
 
-		ViewModel:PivotTo(Camera.CFrame * CFrame.new(Vector3.new(0, ViewBob, 0)))
+		ViewModel:PivotTo(Camera.CFrame * CFrame.new(Vector3.new(0, 0, 0)))
 		ViewModel:SetPrimaryPartCFrame(ViewModel.PrimaryPart.CFrame * CFrame.Angles(0, -Sway.x, Sway.y))
 	end
 
