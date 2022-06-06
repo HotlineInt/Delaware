@@ -8,6 +8,8 @@ local Mouse = Carbon:GetPlayer():GetMouse()
 
 local ViewModelFolder = ReplicatedStorage:WaitForChild("ViewModels")
 local SoundUtil = require(script.Parent.Util.Sound)
+
+local WeaponSpring = require(Carbon.Util.WeaponSpring)
 export type Weapon = {
 	Name: string,
 	FireMode: string,
@@ -38,6 +40,8 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 	local ViewModelName = Tool:GetAttribute("ViewModel") or Tool.Name
 	local Animations = Tool:WaitForChild("Animations", 2)
 	local Sounds = Tool:WaitForChild("Sounds", 2)
+
+	local FireRate = Tool:GetAttribute("FireRate") or 700
 
 	if not Animations then
 		Animations = Instance.new("Folder", Tool)
@@ -77,14 +81,21 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 	end
 
 	self.Connections = {}
+	self.Springs = {
+		Sway = WeaponSpring.Create(),
+		Recoil = WeaponSpring.Create(),
+	}
+
 	self.UsesAmmo = true
 	self.Tool = Tool
+	self.CanRecoil = true
+	self.RecoilConfig = Vector3.new(0.03)
 	self.Reloading = false
 	self.Name = Tool.Name
 	self.FireMode = FireMode
 	self.MaxAmmo = MaxAmmo
 	self.Ammo = Ammo
-	self.RPM = 700
+	self.RPM = FireRate
 	self.Firing = true
 
 	WeaponsService:RegisterWeapon(self)
