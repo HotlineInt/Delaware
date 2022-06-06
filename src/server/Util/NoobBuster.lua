@@ -1,7 +1,7 @@
 local NoobBuster = {
 	Messages = {
 		NO_ACCESS_TO_PlACE = "We have no idea how you managed to join but you are not allowed here. Yet.",
-		BANNED = "You have been banned from this place. \n Reason: %s \n Time Remaining: %s \n\n If you think this is a mistake, please open a support ticket.",
+		BANNED = "You have been banned. \n Reason: %s \n Time Remaining: %s \n\n If you think this is a mistake, please open a support ticket.",
 	},
 }
 
