@@ -23,6 +23,18 @@
 		],
 		"description": "Retrive Carbon"
 	},
+	"CUI Component": {
+		"scope": "lua,luau",
+		"prefix": "cc",
+		"body": [
+			"local Carbon = require(game:GetService(\"ReplicatedStorage\"):WaitForChild(\"Carbon\"))",
+			"local CUI = require(Carbon.UI.CUI)",
+			"",
+			"return function(Props : {})",
+			"\t${0:}",
+			"end",
+		]
+	},
 	"Service": {
 		"prefix": [
 			"service"
