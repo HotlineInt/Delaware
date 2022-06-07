@@ -28,10 +28,7 @@ function Store:Load()
 	Viewer:Mount(Carbon:GetPlayer().PlayerGui)
 	Viewer = Viewer:Get("Container")
 
-	local Router = CUIRouter.new(Viewer, {
-		["/store"] = Store,
-		["/item"] = Item,
-	})
+	local Router = CUIRouter.new(Viewer, CUIRouter:GenerateRoutesFromFolder(script.Routes))
 
 	Router:GoTo("/store", {})
 end
