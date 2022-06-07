@@ -1,6 +1,7 @@
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local Players = game:GetService("Players")
 local ValidTags = {
+	Developer = "tag_developer",
 	Supporter = "tag_supporter",
 	Debugger = "tag_debugger",
 	Moderator = "tag_mod",
@@ -19,7 +20,7 @@ local TagService = {
 
 local InStudio = Carbon:IsStudio()
 
-function TagService:KnitStart()
+function TagService:KnitInit()
 	Players.PlayerAdded:Connect(function(Player)
 		self.PlayerTags[Player] = {}
 		if InStudio == false then
@@ -67,7 +68,7 @@ end
 function TagService:ApplyTag(Player: Player, Tag: string)
 	local UserTags = self.PlayerTags[Player]
 	table.insert(UserTags, Tag)
-	self:SyncData()
+	self:SyncData(Player)
 end
 
 function TagService:RemoveTag(Player: Player, Tag: string)
@@ -76,7 +77,7 @@ function TagService:RemoveTag(Player: Player, Tag: string)
 
 	if Index then
 		table.remove(UserTags, Index)
-		self:SyncData()
+		self:SyncData(Player)
 	end
 end
 
