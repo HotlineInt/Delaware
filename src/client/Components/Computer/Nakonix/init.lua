@@ -10,8 +10,6 @@ local StartButton = require(script.StartMenuOption)
 local Messagebox = require(script.MessageBox)
 local Notepad = require(script.Notepad)
 
-local Cursor = require(script.Cursor)
-
 local Player = Carbon:GetPlayer()
 
 function Nakonix:__init(Monitor: Part, Computer)
@@ -29,7 +27,7 @@ function Nakonix:__init(Monitor: Part, Computer)
 			Label = "Nakopad",
 			Callback = function()
 				Notepad({
-					Content = "Welcome to nakopad - Nakonix's built-in text editor. \n This text editor is currently very basic in functionality. So be aware.",
+					Content = "Welcome to nakopad - Nakonix's built-in text editor. \n This text editor is currently very basic in functionality",
 				}):Mount(Surface)
 			end,
 		}),
@@ -79,7 +77,6 @@ function Nakonix:__init(Monitor: Part, Computer)
 
 			-- make a taskbar
 			Taskbar({ Nakonix = Nakonix, StartMenu = StartMenu }),
-			Cursor({ Surface = Gui.Instance }),
 		},
 	}))
 
