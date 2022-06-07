@@ -18,10 +18,14 @@ local ViewModels = game:GetService("ReplicatedStorage"):WaitForChild("ViewModels
 local WeaponModules = game:GetService("ReplicatedStorage"):WaitForChild("WeaponModules")
 
 local WeapoNHud = require(script.WeaponHud)
+local DamageIndicator = require(script.DamageIndicator)
+
+local CrossHair = require(script.Crosshair)
 
 local CombatSys = {
 	CurrentWeapon = nil,
 	LoadedWeapons = {},
+	Crosshair = nil,
 	LoadedTools = {},
 	TimeSinceLastFire = 0,
 	States = {
@@ -32,6 +36,9 @@ local CombatSys = {
 	GlobalOffset = Vector3.new(),
 }
 local HumanoidDiedConnection
+local HumanoidDamaged
+
+local LastHealth
 
 export type Weapon = {
 	Name: string,
@@ -62,7 +69,11 @@ function CombatSys:Load()
 		end
 	end)
 
+	self.Crosshair = CrossHair()
+	self.Crosshair:Mount(Player.PlayerGui)
+
 	print(string.format("Processed %d ViewModels", TOTAL_PROCESSED_VIEWMODELS))
+	DamageIndicator:Load()
 
 	ContextActionService:BindAction("Mouse", function(...)
 		self:HandleAction(...)
@@ -96,6 +107,10 @@ function CombatSys:OnCharacterAdded(Character: Model)
 		HumanoidDiedConnection:Disconnect()
 	end
 
+	if HumanoidDamaged then
+		HumanoidDamaged:Disconnect()
+	end
+
 	-- clear up varaibles
 	self.States.ShouldFire = false
 	self.States.ShouldUpdate = false
@@ -107,8 +122,10 @@ function CombatSys:OnCharacterAdded(Character: Model)
 	-- get backpack
 	local Backpack: Backpack = Player:WaitForChild("Backpack")
 	local Humanoid: Humanoid = Character:WaitForChild("Humanoid")
+	LastHealth = Humanoid.MaxHealth
 
 	HumanoidDiedConnection = Humanoid.Died:Connect(function()
+		DamageIndicator:UserDead()
 		-- Massive cleanup
 		self:DequipWeapon()
 		self.LoadedTools = {}
@@ -116,6 +133,16 @@ function CombatSys:OnCharacterAdded(Character: Model)
 		self.States.ShouldFire = false
 		self.States.ShouldUpdate = false
 		self.States.CanEquip = false
+	end)
+
+	DamageIndicator:Reset()
+
+	HumanoidDamaged = Humanoid.HealthChanged:Connect(function(Health: number)
+		if Health < LastHealth then
+			DamageIndicator:OnDamage()
+		end
+
+		LastHealth = Health
 	end)
 
 	-- childadded on backpack
@@ -279,10 +306,12 @@ function CombatSys:FireWeapon()
 		return
 	end
 
-	if CurrentAmmo <= 0 then
-		self.States.ShouldFire = false
-		Notification:Notify("Out of ammo")
-		return
+	if CurrentWeapon.UsesAmmo then
+		if CurrentAmmo <= 0 then
+			self.States.ShouldFire = false
+			Notification:Notify("Out of ammo")
+			return
+		end
 	end
 
 	if CurrentWeapon.CanRecoil then
@@ -328,6 +357,7 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 	print("updating")
 	-- Set ShouldUpdate to true
 	self.States.ShouldUpdate = true
+	self.Crosshair:SetProperty("Enabled", true)
 	print("Equipped " .. Weapon.Name)
 end
 
@@ -350,7 +380,9 @@ function CombatSys:ReloadWeapon()
 
 	self.States.ShouldFire = false
 	HUD:SetStats("--", "--")
+	self.Crosshair:SetProperty("Enabled", false)
 	CurrentWeapon:Reload()
+	self.Crosshair:SetProperty("Enabled", true)
 	local NewAmmo = CurrentWeapon:GetStat("Ammo")
 	HUD:SetStats(NewAmmo, CurrentWeapon.MaxAmmo)
 	NewAmmo = nil
@@ -379,6 +411,7 @@ function CombatSys:DequipWeapon()
 	-- Set ShouldUpdate to false
 	self.States.ShouldUpdate = false
 	self.CurrentWeapon = nil
+	self.Crosshair:SetProperty("Enabled", false)
 end
 
 function CombatSys:Update(DeltaTime: number)
