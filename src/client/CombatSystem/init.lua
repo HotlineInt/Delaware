@@ -19,6 +19,7 @@ local WeaponModules = game:GetService("ReplicatedStorage"):WaitForChild("WeaponM
 
 local WeapoNHud = require(script.WeaponHud)
 local DamageIndicator = require(script.DamageIndicator)
+local HitIndicator = require(script.HitIndicator)
 
 local CrossHair = require(script.Crosshair)
 
@@ -74,6 +75,7 @@ function CombatSys:Load()
 
 	print(string.format("Processed %d ViewModels", TOTAL_PROCESSED_VIEWMODELS))
 	DamageIndicator:Load()
+	HitIndicator:Load()
 
 	ContextActionService:BindAction("Mouse", function(...)
 		self:HandleAction(...)
@@ -399,7 +401,7 @@ function CombatSys:DequipWeapon()
 	-- Check if there's an current weapon available
 	if not self.CurrentWeapon then
 		-- debug error. I'm sorry.
-		--error("Cannot dequip with no weapon equipped")
+		warn("Cannot dequip with no weapon equipped")
 		return
 	end
 
