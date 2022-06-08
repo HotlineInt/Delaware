@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
+local Class = require(Carbon.Util.Class)
 -- get knit bridge
 local Knit = require(Carbon.Framework.Knit)
 -- -- get WeaponsService
@@ -20,7 +21,6 @@ export type Weapon = {
 	Tool: Tool,
 }
 
-local Class = require(Carbon.Util.Class)
 local CBaseWeapon = Class("CBaseWeapon")
 
 local ValidSounds = {
@@ -72,7 +72,13 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 		error(string.format("Invalid ViewModel provided for %s", Tool.Name))
 	end
 	self.ViewModel = ViewModel:Clone()
-	local Animator = ViewModel.Humanoid:WaitForChild("Animator")
+	local Animator
+	local Humanoid = ViewModel:FindFirstChild("Humanoid")
+	if Humanoid then
+		Animator = Humanoid:FindFirstChildOfClass("Animator")
+	else
+		Animator = ViewModel:FindFirstChildOfClass("AnimationController")
+	end
 
 	for _, Animation: Animation in pairs(Animations:GetChildren()) do
 		local Track: AnimationTrack = Animator:LoadAnimation(Animation)
@@ -135,15 +141,17 @@ function CBaseWeapon:PlaySound(SoundName: string)
 
 	if Sound then
 		print("Playing back weapon sound: " .. SoundName)
-		local Clone = Sound:Clone()
-		Clone.Parent = Sound.Parent
+		WeaponsService:PlaySound(self, SoundName)
 
-		Clone:Play()
-		local Stopped
-		Stopped = Clone.Stopped:Connect(function()
-			Clone:Destroy()
-			Stopped:Disconnect()
-		end)
+		--local Clone = Sound:Clone()
+		--Clone.Parent = Sound.Parent
+
+		--Clone:Play()
+		--local Stopped
+		--Stopped = Clone.Stopped:Connect(function()
+		--	Clone:Destroy()
+		--	Stopped:Disconnect()
+		--end)
 	else
 		print("Missing sound jack: " .. SoundName)
 	end
