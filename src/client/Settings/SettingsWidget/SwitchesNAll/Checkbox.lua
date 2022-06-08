@@ -40,8 +40,11 @@ return function(Setting)
 
 	SettingsManager:OnSettingChange(Setting.Name, function(OldValue, NewValue)
 		print("hi??")
-		local self = Switch:Get(Setting.Name .. "Switch")
-		self:SetProperty("Text", BooleanValues[NewValue])
+		local Switchh = Switch:Get(Setting.Name .. "Switch")
+		if not Switchh then
+			return
+		end
+		Switchh:SetProperty("Text", BooleanValues[NewValue])
 	end)
 
 	return Switch
