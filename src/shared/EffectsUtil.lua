@@ -53,10 +53,12 @@ function Effects:GetMaterialFolder(Part: BasePart): Folder
 	return MaterialFolder
 end
 
-function Effects:HitEffect(Part: BasePart, Position: Vector3, Normal: Vector3?): Attachment
+function Effects:HitEffect(Part: BasePart, Position: Vector3, Normal: Vector3?)
 	local Attachment = Instance.new("Attachment")
+	print(Position, Normal)
 	Attachment.CFrame = CFrame.new(Position, Position + Normal)
 	Attachment.Parent = workspace.Terrain
+
 	local HitPartSequence = ColorSequence.new(Part.Color)
 
 	do
@@ -65,7 +67,6 @@ function Effects:HitEffect(Part: BasePart, Position: Vector3, Normal: Vector3?):
 		local ParticlesFolder = MaterialFolder.Particles.Used
 
 		for _, Particle: ParticleEmitter in pairs(ParticlesFolder:GetChildren()) do
-			local DurationOverride = Particle:FindFirstChild("Duration")
 			local UsePartColor = Particle:FindFirstChild("HitPartColor") ~= nil
 			local Duration = ParticleDuration
 
@@ -118,13 +119,20 @@ function Effects:HitEffect(Part: BasePart, Position: Vector3, Normal: Vector3?):
 	return Attachment
 end
 
-function Effects:SoundEffect(Attachment: Attachment, MaterialFolder: Folder)
+function Effects:SoundEffect(Position: Vector3, MaterialFolder: Folder)
+	local Attachment = Instance.new("Attachment")
+	Attachment.WorldPosition = Position
+	Attachment.Parent = workspace.Terrain
+
 	local Sound = RandomUtil:rlist(MaterialFolder.Sounds:GetChildren()):Clone()
 	Sound.PlaybackSpeed = RandomUtil:randf(0.8, 1.25)
 	Sound.Parent = Attachment
 	Sound.MaxDistance = 60
 	Sound:Play()
-	Debris:AddItem(Sound, Sound.TimeLength / Sound.PlaybackSpeed)
+	task.delay(Sound.TimeLength / Sound.PlaybackSpeed, function()
+		Sound:Destroy()
+		Attachment:Destroy()
+	end)
 end
 
 return Effects

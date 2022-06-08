@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local WeaponService = {
 	Client = {
 		OnPlayerHit = Knit:CreateSignal("OnPlayerHit"),
+		OnEffectRequest = Knit:CreateSignal("OnEffectRequest"),
 	},
 }
 
@@ -25,7 +26,6 @@ local StateEnum = {
 	Reloading = "Reloading",
 }
 
-local Effects = require(script.Effects)
 local WorldModelUtil = require(script.WorldModels)
 --local RayVisualizer = require(script.Parent.Parent.Visualizers.RayVisualizer)
 
@@ -315,6 +315,10 @@ function WeaponService:GetHumanoid(Instance: BasePart): Humanoid | nil
 	return Humanoid
 end
 
+--[[
+	TODO: Minimize the amount of data sent by the client for each request (Fire, Reload)
+]]
+
 function WeaponService.Client:FireWeapon(Player: Player, Weapon: Weapon, FiresTo: Vector3): nil
 	if not WeaponService:Verify(Player, Weapon, true) then
 		warn("User failed check. Reason above ^")
@@ -356,10 +360,9 @@ function WeaponService.Client:FireWeapon(Player: Player, Weapon: Weapon, FiresTo
 			Humanoid:TakeDamage(Damage)
 		end
 
-		local SoundAttachment = Effects:HitEffect(Result.Instance, Result.Position, Result.Normal)
-		Effects:SoundEffect(SoundAttachment, Effects:GetMaterialFolder(Result.Instance))
+		self.OnEffectRequest:Fire(Player, "Wall", Result.Instance, Result.Position, Result.Normal)
+		self.OnEffectRequest:Fire(Player, "Sound", Result.Instance)
 
-		SoundAttachment = nil
 		Humanoid = nil
 	else
 		warn("Raycasting failed!", Player)

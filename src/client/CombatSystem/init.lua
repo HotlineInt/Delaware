@@ -17,9 +17,12 @@ local Player = Carbon:GetPlayer()
 local ViewModels = game:GetService("ReplicatedStorage"):WaitForChild("ViewModels")
 local WeaponModules = game:GetService("ReplicatedStorage"):WaitForChild("WeaponModules")
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local WeapoNHud = require(script.WeaponHud)
 local DamageIndicator = require(script.DamageIndicator)
 local HitIndicator = require(script.HitIndicator)
+local EffectsHandler = require(script.EffectsHandler)
 
 local CrossHair = require(script.Crosshair)
 
@@ -53,29 +56,24 @@ export type Weapon = {
 
 function CombatSys:Load()
 	print("Processing viewmodels")
-	local TOTAL_PROCESSED_VIEWMODELS = 0
 
 	task.defer(function()
+		ReplicatedStorage:WaitForChild("ViewModels")
 		for _, ViewModel in pairs(ViewModels:GetChildren()) do
-			TOTAL_PROCESSED_VIEWMODELS += 1
-			for _, Part in pairs(ViewModel:GetDescendants()) do
-				if not Part:IsA("BasePart") then
-					continue
-				end
-				Part.CanQuery = false
-				Part.CanCollide = false
-				Part.CanTouch = false
-				PhysicsService:SetPartCollisionGroup(Part, "ViewModels")
-			end
+			self:ProcessVM(ViewModel)
 		end
+
+		ViewModels.ChildAdded:Connect(function(ViewModel)
+			self:ProcessVM(ViewModel)
+		end)
 	end)
 
 	self.Crosshair = CrossHair()
 	self.Crosshair:Mount(Player.PlayerGui)
 
-	print(string.format("Processed %d ViewModels", TOTAL_PROCESSED_VIEWMODELS))
 	DamageIndicator:Load()
 	HitIndicator:Load()
+	EffectsHandler:Load()
 
 	ContextActionService:BindAction("Mouse", function(...)
 		self:HandleAction(...)
@@ -102,6 +100,19 @@ function CombatSys:Load()
 	-- 		task.wait()
 	-- 	end
 	-- end)
+end
+
+function CombatSys:ProcessVM(ViewModel: Model)
+	warn(string.format("Processing %s", ViewModel.Name))
+	for _, Part in pairs(ViewModel:GetDescendants()) do
+		if not Part:IsA("BasePart") then
+			continue
+		end
+		Part.CanQuery = false
+		Part.CanCollide = false
+		Part.CanTouch = false
+		PhysicsService:SetPartCollisionGroup(Part, "ViewModels")
+	end
 end
 
 function CombatSys:OnCharacterAdded(Character: Model)
