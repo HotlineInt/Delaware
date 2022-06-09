@@ -13,7 +13,7 @@ function EffectsHandler:Load()
 			if Type == "Wall" then
 				EffectsUtil:HitEffect(ResultInstance, Position, Normal)
 			elseif Type == "Sound" then
-				local MaterialFolder = EffectsFolder:FindFirstChild(
+				local MaterialFolder = EffectsFolder.Materials:FindFirstChild(
 					tostring(ResultInstance.Material):gsub("Enum.Material.", "")
 				)
 

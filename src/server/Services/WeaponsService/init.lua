@@ -3,27 +3,21 @@ local Knit = require(Carbon.Framework.Knit)
 local Signal = require(Carbon.Util.Signal)
 
 local Players = game:GetService("Players")
+
+local Config = require(script.BasicConfig)
+
+local StateEnum = {
+	Idle = "Idle",
+	Firing = "Firing",
+	Reloading = "Reloading",
+}
+
 local WeaponService = {
 	Client = {
 		OnPlayerHit = Knit:CreateSignal("OnPlayerHit"),
 		OnEffectRequest = Knit:CreateSignal("OnEffectRequest"),
 	},
-}
-
-local Config = require(script.BasicConfig)
-export type Weapon = {
-	Name: string,
-	FireMode: string,
-	Offset: Vector3,
-	Ammo: number,
-	MaxAmmo: number,
-	ViewModel: Model,
-	Tool: Tool,
-}
-local StateEnum = {
-	Idle = "Idle",
-	Firing = "Firing",
-	Reloading = "Reloading",
+	StateEnum = StateEnum,
 }
 
 local WorldModelUtil = require(script.WorldModels)
@@ -32,6 +26,8 @@ local WorldModelUtil = require(script.WorldModels)
 local ReloadThreads = {}
 local Connections = {}
 local AnimationTracks = {}
+
+local BaseType = require(script.Types.BaseType).new(WeaponService)
 
 -- Player pass, really messy
 -- All to just make hats not be taken into account while casting a ray....
@@ -99,37 +95,37 @@ function WeaponService:KnitStart()
 	end)
 end
 
-function WeaponService.Client:RegisterWeapon(Player: Player, Weapon: Weapon)
-	if Weapon == nil or type(Weapon) ~= "table" then
-		warn("Invalid weapon table provided")
-		return false
+function WeaponService.Client:RegisterWeapon(Player: Player, Weapon: Tool)
+	if Weapon == nil then
+		warn("Bruh send me a valid weapon")
+		return
 	end
-	local Tool = Weapon.Tool
 
-	if not AnimationTracks[Player][Tool] then
-		AnimationTracks[Player][Tool] = {}
+	if not AnimationTracks[Player][Weapon] then
+		AnimationTracks[Player][Weapon] = {}
 	end
 
 	local HostAnimator: Animator = Player.Character:FindFirstChild("Humanoid"):FindFirstChild("Animator")
-	local Animations = Tool:FindFirstChild("AnimationsWorld")
+	local Animations = Weapon:FindFirstChild("AnimationsWorld")
 
 	if not Animations then
-		Animations = Tool:FindFirstChild("Animations")
+		Animations = Weapon:FindFirstChild("Animations")
 	end
 
 	if Animations then
 		for _, Animation: Animation in pairs(Animations:GetChildren()) do
 			local Track = HostAnimator:LoadAnimation(Animation)
-			AnimationTracks[Player][Tool][Animation.Name] = Track
-			warn(string.format("Registered animation %s for %s", Animation.Name, Tool.Name))
+			AnimationTracks[Player][Weapon][Animation.Name] = Track
+			warn(string.format("Registered animation %s for %s", Animation.Name, Weapon.Name))
 		end
 	end
 
-	Tool:SetAttribute("State", StateEnum.Idle)
+	Weapon:SetAttribute("State", StateEnum.Idle)
 end
 
-function WeaponService:Verify(Host: Player, Weapon: Weapon, AmmoCheck: boolean)
-	if Weapon == nil or type(Weapon) ~= "table" then
+function WeaponService:Verify(Host: Player, Weapon: Tool, AmmoCheck: boolean)
+	-- what
+	if Weapon == nil or typeof(Weapon) ~= "Instance" then
 		warn("Failed check: Invalid weapon table provided", Host)
 		return false
 	end
@@ -138,11 +134,6 @@ function WeaponService:Verify(Host: Player, Weapon: Weapon, AmmoCheck: boolean)
 
 	if not WeaponState then
 		warn("Failed check: There is no valid state for the weapon.")
-		return
-	end
-
-	if Weapon.Tool == nil then
-		warn("Failed check: Dude literally tried to make a fake tool and thought it would work. Lmao.")
 		return
 	end
 
@@ -161,6 +152,12 @@ function WeaponService:Verify(Host: Player, Weapon: Weapon, AmmoCheck: boolean)
 		return false
 	end
 
+	-- one cant fire without even having the gun itself.
+	if Character:FindFirstChild(Weapon.Name) == nil then
+		warn("Failed check: Weapon Does Not Exist", Host)
+		return false
+	end
+
 	-- one can't fire without a humanoid
 	local Humanoid = Character:FindFirstChild("Humanoid")
 	if not Humanoid then
@@ -176,7 +173,7 @@ function WeaponService:Verify(Host: Player, Weapon: Weapon, AmmoCheck: boolean)
 
 	if AmmoCheck then
 		-- check weapon ammo via GetAttribute
-		local Ammo = Weapon.Tool:GetAttribute("Ammo")
+		local Ammo = Weapon:GetAttribute("Ammo")
 
 		-- check if weapon has ammo, if it doesn't then fail check
 		if Ammo <= 0 then
@@ -194,30 +191,19 @@ function WeaponService:Verify(Host: Player, Weapon: Weapon, AmmoCheck: boolean)
 	return true
 end
 
-function WeaponService.Client:WeaponEquipped(Player: Player, Weapon: Weapon)
-	if Weapon == nil or type(Weapon) ~= "table" then
-		warn("Invalid weapon table provided")
-		return false
-	end
-
+function WeaponService.Client:WeaponEquipped(Player: Player, Weapon: Tool)
 	if not WeaponService:Verify(Player, Weapon, false) then
 		error("Failed check: Weapon Invalid: Equipped")
 		return
 	end
 
-	local Tool = Weapon.Tool
-	local WorldModel = Tool:GetAttribute("WorldModel")
+	local WorldModel = Weapon:GetAttribute("WorldModel")
 
-	WorldModelUtil:AddWorldModel(Player, Tool, WorldModel)
+	WorldModelUtil:AddWorldModel(Player, Weapon, WorldModel)
 end
 
-function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Weapon)
-	if Weapon == nil or type(Weapon) ~= "table" then
-		warn("Invalid weapon table provided")
-		return false
-	end
-	local Tool = Weapon.Tool
-	local ReloadThread = ReloadThreads[Tool]
+function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Tool)
+	local ReloadThread = ReloadThreads[Weapon]
 
 	if ReloadThread then
 		local Thread, Signal = ReloadThread[1], ReloadThread[2]
@@ -229,32 +215,30 @@ function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Weapon)
 		task.cancel(Thread)
 	end
 
-	WorldModelUtil:RemoveWorldModel(Player, Tool)
+	WorldModelUtil:RemoveWorldModel(Player, Weapon)
 end
 
-function WeaponService:GetState(Weapon: Weapon): string
-	local Tool = Weapon.Tool
-	return Tool:GetAttribute("State")
+function WeaponService:GetState(Weapon: Tool): string
+	return Weapon:GetAttribute("State")
 end
 
 -- set state
-function WeaponService:SetState(Weapon: Weapon, State: any)
-	local Tool = Weapon.Tool
-	local OldState = Tool:GetAttribute("State")
+function WeaponService:SetState(Weapon: Tool, State: any)
+	local OldState = Weapon:GetAttribute("State")
 
 	if OldState == State then
 		return
 	end
 
-	Tool:SetAttribute("State", State)
+	Weapon:SetAttribute("State", State)
 end
 
-function WeaponService:GetAnimation(Player: Player, Weapon: Weapon, Animation: string)
-	local Track = AnimationTracks[Player][Weapon.Tool]
+function WeaponService:GetAnimation(Player: Player, Weapon: Tool, Animation: string)
+	local Track = AnimationTracks[Player][Weapon]
 	return Track[Animation]
 end
 
-function WeaponService.Client:PlayAnimation(Player: Player, Weapon: Weapon, Animation: string)
+function WeaponService.Client:PlayAnimation(Player: Player, Weapon: Tool, Animation: string)
 	if not WeaponService:Verify(Player, Weapon, false) then
 		return
 	end
@@ -268,15 +252,14 @@ function WeaponService.Client:PlayAnimation(Player: Player, Weapon: Weapon, Anim
 	end
 end
 
-function WeaponService.Client:PlaySound(Player: Player, Weapon: Weapon, SoundName: string)
+function WeaponService.Client:PlaySound(Player: Player, Weapon: Tool, SoundName: string)
 	if not WeaponService:Verify(Player, Weapon, false) then
 		return
 	end
 
 	local Character = Player.Character
 
-	local Tool = Weapon.Tool
-	local SoundsFolder = Tool:FindFirstChild("Sounds")
+	local SoundsFolder = Weapon:FindFirstChild("Sounds")
 	assert(SoundsFolder, "No sounds folder >:(")
 
 	local Sound = SoundsFolder:FindFirstChild(SoundName)
@@ -294,7 +277,7 @@ function WeaponService.Client:PlaySound(Player: Player, Weapon: Weapon, SoundNam
 	end
 end
 
-function WeaponService.Client:StopAnimation(Player: Player, Weapon: Weapon, Animation: string)
+function WeaponService.Client:StopAnimation(Player: Player, Weapon: Tool, Animation: string)
 	if not WeaponService:Verify(Player, Weapon, false) then
 		return
 	end
@@ -316,10 +299,12 @@ function WeaponService:GetHumanoid(Instance: BasePart): Humanoid | nil
 end
 
 --[[
-	TODO: Minimize the amount of data sent by the client for each request (Fire, Reload)
-]]
+	~~TODO: Minimize the amount of data sent by the client for each request (Fire, Reload)
 
-function WeaponService.Client:FireWeapon(Player: Player, Weapon: Weapon, FiresTo: Vector3): nil
+		^ Acomplished!
+	]]
+
+function WeaponService.Client:FireWeapon(Player: Player, Weapon: Tool, FiresTo: Vector3): nil
 	if not WeaponService:Verify(Player, Weapon, true) then
 		warn("User failed check. Reason above ^")
 		return
@@ -334,53 +319,50 @@ function WeaponService.Client:FireWeapon(Player: Player, Weapon: Weapon, FiresTo
 
 	WeaponService:SetState(Weapon, StateEnum.Firing)
 
-	local Tool = Weapon.Tool
-	local Damage = Tool:GetAttribute("Damage")
+	BaseType:FireWeapon(Player, Weapon, FiresTo)
 
-	local Character = Player.Character
-
-	local Params: RaycastParams = RaycastParams.new()
-	Params.FilterType = Enum.RaycastFilterType.Blacklist
-	Params.FilterDescendantsInstances = { Character }
-
-	local Origin = Character.Head.Position
-	local Direction = (FiresTo - Origin).Unit
-
-	local Result = workspace:Raycast(Origin, Direction * 300, Params)
 	task.delay(Config.FireDelay, function()
 		WeaponService:SetState(Weapon, StateEnum.Idle)
 	end)
 
-	if Result then
-		--RayVisualizer(Origin, Result.Position)
-		local Humanoid = WeaponService:GetHumanoid(Result.Instance)
+	-- local Tool = Weapon.Tool
+	-- local Damage = Tool:GetAttribute("Damage")
 
-		if Humanoid then
-			self.OnPlayerHit:Fire(Player, Result.Instance, Damage)
-			Humanoid:TakeDamage(Damage)
-		end
+	-- local Character = Player.Character
 
-		self.OnEffectRequest:Fire(Player, "Wall", Result.Instance, Result.Position, Result.Normal)
-		self.OnEffectRequest:Fire(Player, "Sound", Result.Instance)
+	-- local Params: RaycastParams = RaycastParams.new()
+	-- Params.FilterType = Enum.RaycastFilterType.Blacklist
+	-- Params.FilterDescendantsInstances = { Character }
 
-		Humanoid = nil
-	else
-		warn("Raycasting failed!", Player)
-	end
+	-- local Origin = Character.Head.Position
+	-- local Direction = (FiresTo - Origin).Unit
 
-	Tool:SetAttribute("Ammo", Tool:GetAttribute("Ammo") - 1)
+	-- local Result = workspace:Raycast(Origin, Direction * 300, Params)
+	-- task.delay(Config.FireDelay, function()
+	-- 	WeaponService:SetState(Weapon, StateEnum.Idle)
+	-- end)
 
-	-- Cleanup fun
-	Tool = nil
-	Result = nil
-	Origin = nil
-	Direction = nil
-	Params = nil
-	Damage = nil
-	Character = nil
+	-- if Result then
+	-- 	--RayVisualizer(Origin, Result.Position)
+	-- 	local Humanoid = WeaponService:GetHumanoid(Result.Instance)
+
+	-- 	if Humanoid then
+	-- 		self.OnPlayerHit:Fire(Player, Result.Instance, Damage)
+	-- 		Humanoid:TakeDamage(Damage)
+	-- 	end
+
+	-- 	self.OnEffectRequest:Fire(Player, "Wall", Result.Instance, Result.Position, Result.Normal)
+	-- 	self.OnEffectRequest:Fire(Player, "Sound", Result.Instance)
+
+	-- 	Humanoid = nil
+	-- else
+	-- 	warn("Raycasting failed!", Player)
+	-- end
+
+	-- Tool:SetAttribute("Ammo", Tool:GetAttribute("Ammo") - 1)
 end
 
-function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
+function WeaponService.Client:Reload(Player: Player, Weapon: Tool)
 	if not WeaponService:Verify(Player, Weapon, false) then
 		warn("User failed check. Reason above ^")
 		return
@@ -393,15 +375,14 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 		return
 	end
 
-	if ReloadThreads[Weapon.Tool] then
+	if ReloadThreads[Weapon] then
 		warn("RELOAD: There is a existing reload thread for this tool. Aborting.")
 		return
 	end
 
-	local Tool = Weapon.Tool
-	local Ammo = Tool:GetAttribute("Ammo")
-	local MaxAmmo = Tool:GetAttribute("MaxAmmo")
-	local ReloadTime = Tool:GetAttribute("ReloadTime") or 5
+	local Ammo = Weapon:GetAttribute("Ammo")
+	local MaxAmmo = Weapon:GetAttribute("MaxAmmo")
+	local ReloadTime = Weapon:GetAttribute("ReloadTime") or 5
 
 	if Ammo == MaxAmmo then
 		warn("You have full ammo.")
@@ -413,11 +394,11 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 
 	print("Reloading...")
 	WeaponService:SetState(Weapon, StateEnum.Reloading)
-	ReloadThreads[Tool] = {
+	ReloadThreads[Weapon] = {
 		task.spawn(function()
 			ReloadAnim:Play()
 			task.wait(ReloadTime)
-			Tool:SetAttribute("Ammo", MaxAmmo)
+			Weapon:SetAttribute("Ammo", MaxAmmo)
 			task.wait(Config.ReloadDelays) -- Slight delay to make it feel better
 			print("Reloaded")
 			WeaponService:SetState(Weapon, StateEnum.Idle)
@@ -430,7 +411,7 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Weapon)
 	if Result == "Cancelled" then
 		ReloadAnim:Stop()
 	elseif Result == "Completed" then
-		ReloadThreads[Tool] = nil
+		ReloadThreads[Weapon] = nil
 	end
 	task.wait(0.09)
 	WeaponService:SetState(Weapon, StateEnum.Idle)

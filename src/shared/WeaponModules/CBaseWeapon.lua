@@ -80,10 +80,14 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 		Animator = ViewModel:FindFirstChildOfClass("AnimationController")
 	end
 
-	for _, Animation: Animation in pairs(Animations:GetChildren()) do
-		local Track: AnimationTrack = Animator:LoadAnimation(Animation)
+	if Animator then
+		for _, Animation: Animation in pairs(Animations:GetChildren()) do
+			local Track: AnimationTrack = Animator:LoadAnimation(Animation)
 
-		self.Animations[Animation.Name] = Track
+			self.Animations[Animation.Name] = Track
+		end
+	else
+		warn("Animator is missing for ViewModel", ViewModel, "Your animations will not work!")
 	end
 
 	self.Connections = {}
@@ -104,7 +108,7 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 	self.RPM = FireRate
 	self.Firing = true
 
-	WeaponsService:RegisterWeapon(self)
+	WeaponsService:RegisterWeapon(self.Tool)
 end
 
 -- stop all animations
@@ -120,7 +124,7 @@ function CBaseWeapon:PlayAnimation(AnimationName: string, Loop: boolean)
 
 	if Animation then
 		Animation:Play()
-		WeaponsService:PlayAnimation(self, AnimationName)
+		WeaponsService:PlayAnimation(self.Tool, AnimationName)
 		return Animation
 	end
 end
@@ -130,7 +134,7 @@ function CBaseWeapon:StopAnimation(AnimationName: string)
 	local Animation = self.Animations[AnimationName]
 
 	if Animation then
-		WeaponsService:StopAnimation(self, AnimationName)
+		WeaponsService:StopAnimation(self.Tool, AnimationName)
 		Animation:Stop()
 	end
 end
@@ -141,7 +145,7 @@ function CBaseWeapon:PlaySound(SoundName: string)
 
 	if Sound then
 		print("Playing back weapon sound: " .. SoundName)
-		WeaponsService:PlaySound(self, SoundName)
+		WeaponsService:PlaySound(self.Tool, SoundName)
 
 		--local Clone = Sound:Clone()
 		--Clone.Parent = Sound.Parent
@@ -160,7 +164,7 @@ end
 function CBaseWeapon:Equip()
 	local EquipAnim: AnimationTrack = self:PlayAnimation("Equip")
 	self:PlaySound("Equip")
-	WeaponsService:WeaponEquipped(self)
+	WeaponsService:WeaponEquipped(self.Tool)
 	print("yahoo")
 	--EquipAnim.Stopped:Wait()
 	self:PlayAnimation("Idle")
@@ -171,7 +175,7 @@ end
 
 function CBaseWeapon:Dequip()
 	self:StopAnimation("Idle")
-	WeaponsService:WeaponUnequipped(self)
+	WeaponsService:WeaponUnequipped(self.Tool)
 	self:PlaySound("Dequip")
 	self:PlayAnimation("Deequip")
 	print("Based")
@@ -204,7 +208,7 @@ function CBaseWeapon:Fire()
 		self:PlaySound("Shoot")
 		task.spawn(function()
 			print("Is this even running?")
-			WeaponsService:FireWeapon(self, Mouse.Hit.Position)
+			WeaponsService:FireWeapon(self.Tool, Mouse.Hit.Position)
 			self.Ammo = self:GetStat("Ammo")
 		end)
 	else
@@ -217,7 +221,7 @@ function CBaseWeapon:Reload()
 		self.Reloading = true
 		self:PlayAnimation("Reload")
 		self:PlaySound("Reload")
-		WeaponsService:Reload(self):await()
+		WeaponsService:Reload(self.Tool):await()
 		self.Reloading = false
 	end
 end
