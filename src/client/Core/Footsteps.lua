@@ -5,7 +5,7 @@ local Footsteps = {
 	StateChangedConnection = nil,
 	Delays = {
 		Running = 0.2,
-		Walking = 0.4,
+		Walking = 0.6,
 	},
 	Volume = 0.1,
 	Delay = 0.4,

@@ -10,19 +10,6 @@ local ChatUtil = require(Carbon.Util.Chat)
 
 local Knit = require(Carbon.Framework.Knit)
 
-local Vendor = game:GetService("ReplicatedStorage"):WaitForChild("Vendor")
-local TopbarPlus = require(Vendor.TopbarPlus)
-
-local TestCrap = TopbarPlus.mimic("Backpack")
-
-local LaunchTestEnv = false
-
-if LaunchTestEnv then
-	local TestRunner = require(script.Parent.TestRunner)
-	TestRunner:Begin()
-	return
-end
-
 local LocalizedTags = {
 	["tag_supporter"] = "Supporter",
 	["tag_debugger"] = "Debugger",
@@ -30,27 +17,22 @@ local LocalizedTags = {
 }
 
 local YOU_HAVE_MESSAGE = "DEBUG MESSAGE: You have the following tags: %s"
+local Core = script.Parent:WaitForChild("Core")
+local System = script.Parent:WaitForChild("System")
 
-local TEST = true -- True for now. -- Carbon:IsStudio()
-
-Carbon:RegisterModule(script.Parent.Notification)
-Carbon:RegisterModule(script.Parent.Console)
-Carbon:RegisterModule(script.Parent.Settings.SettingsWidget)
-Carbon:RegisterModule(script.Parent.Footsteps)
 Knit:Start():andThen(function()
-	if TEST then
-		Carbon:RegisterModule(script.Parent.HUD)
-		--require(script.Parent.Screens.BuySupporter)():Mount(Carbon:GetPlayer().PlayerGui)
+	Carbon:RegisterModule(System.Notification)
+	Carbon:RegisterModule(Core.CombatSystem)
+	Carbon:RegisterModule(Core.Console)
+	Carbon:RegisterModule(Core.Footsteps)
+	Carbon:RegisterModule(Core.Settings.SettingsWidget)
 
-		for _, DebugModule in pairs(script.Parent.Debug:GetChildren()) do
-			Carbon:RegisterModule(DebugModule)
-		end
-
-		Carbon:RegisterModule(script.Parent.CombatSystem)
-	end
+	Carbon:RegisterModule(System.Debug.EconomyTest)
 
 	Carbon:Start()
-	ComponentLoader(script.Parent.Components)
+	ComponentLoader(Core.Components)
+
+	ChatUtil:MakeSystemMessage("Welcome to Codename: Delaware")
 
 	-- Tag checking
 	local TagService = Knit:GetService("TagService")
@@ -58,7 +40,17 @@ Knit:Start():andThen(function()
 		local JoinedTags = ""
 		local Count = #SelfTags
 
+		if Count == 0 then
+			JoinedTags = "None"
+		end
+
 		for Index, Tag in ipairs(SelfTags) do
+			local Localized = LocalizedTags[Tag]
+			if Localized then
+				Localized = Tag
+			end
+
+			print(Index, Tag)
 			if Index ~= Count then
 				print(",")
 				JoinedTags = JoinedTags .. Tag .. ", "
@@ -75,8 +67,9 @@ end)
 Camera.FieldOfView = 90
 --StarterGui:SetCore("TopbarEnabled", false)
 
+UserInputService.MouseIconEnabled = false
+
 -- debug purposes only !!
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
-UserInputService.MouseIconEnabled = false

@@ -9,6 +9,7 @@ return function()
 		BackgroundColor3 = Color3.new(),
 		BackgroundTransparency = 0.5,
 		Size = UDim2.new(1, 0, 1, 0),
+
 		[CUI.Children] = {
 			CUI:CreateElement("ScrollingFrame", {
 				Name = "Logs",

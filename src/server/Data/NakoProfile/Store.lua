@@ -29,6 +29,7 @@ function Store:GetProfile(Key: string)
 	local Profile = self.Profiles[Key]
 
 	if not Profile then
+		print("Loading profile:", Key)
 		Profile = self:LoadProfile(Key)
 	end
 

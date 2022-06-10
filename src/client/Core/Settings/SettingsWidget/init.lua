@@ -9,7 +9,7 @@ local SettingsManager = require(script.Parent.SettingsManager)
 local SettingsWidget = {}
 
 local Setting = require(script.Setting)
-local TitleLabel = require(script.Parent.Parent.TitleLabel)
+local TitleLabel = require(script.Parent.Parent.Parent.TitleLabel)
 
 function SettingsWidget:Load()
 	self.Widget = CUI:CreateElement("ScreenGui", {

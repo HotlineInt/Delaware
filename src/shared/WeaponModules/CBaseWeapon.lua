@@ -108,6 +108,9 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 	self.RPM = FireRate
 	self.Firing = true
 
+	self.CanADS = true
+	self.ADSOffset = Vector3.new()
+
 	WeaponsService:RegisterWeapon(self.Tool)
 end
 
@@ -217,11 +220,15 @@ function CBaseWeapon:Fire()
 end
 
 function CBaseWeapon:Reload()
-	if self.Ammo < self.MaxAmmo then
+	local Ammo = self.Tool:GetAttribute("Ammo")
+
+	print(Ammo, self.MaxAmmo)
+	if Ammo < self.MaxAmmo then
 		self.Reloading = true
 		self:PlayAnimation("Reload")
 		self:PlaySound("Reload")
 		WeaponsService:Reload(self.Tool):await()
+		print("contain me	")
 		self.Reloading = false
 	end
 end

@@ -34,7 +34,7 @@ function ScreenStack:MakeCurrent(Target: Frame)
 		return error("Target must be in the stack")
 	end
 
-	if typeof(Target) == "ScreenGui" then
+	if Target:IsA("ScreenGui") then
 		--Target.DisplayOrder = self.CurrentScreen.DisplayOrder + 1
 		Target.Parent = self.Container
 	elseif type(Target) == "table" then

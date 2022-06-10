@@ -7,7 +7,7 @@ local Camera = workspace.CurrentCamera
 
 -- get carbon
 
-local Notification = require(script.Parent.Notification)
+local Notification = require(script.Parent.Parent.System.Notification)
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local PhysicsService = game:GetService("PhysicsService")
@@ -36,8 +36,9 @@ local CombatSys = {
 		CanEquip = false,
 		ShouldUpdate = false,
 		ShouldFire = false,
+		IsInAds = false,
 	},
-	GlobalOffset = Vector3.new(),
+	GlobalOffset = Instance.new("Vector3Value"),
 }
 local HumanoidDiedConnection
 local HumanoidDamaged
@@ -79,6 +80,10 @@ function CombatSys:Load()
 		self:HandleAction(...)
 	end, false, Enum.UserInputType.MouseButton1)
 
+	ContextActionService:BindAction("ADS", function(...)
+		self:HandleAction(...)
+	end, false, Enum.UserInputType.MouseButton2)
+
 	ContextActionService:BindAction("Update", function(...)
 		self:HandleAction(...)
 	end, false, Enum.KeyCode.F3)
@@ -116,6 +121,8 @@ function CombatSys:ProcessVM(ViewModel: Model)
 end
 
 function CombatSys:OnCharacterAdded(Character: Model)
+	print("man fuc king kill yourself")
+
 	if HumanoidDiedConnection then
 		HumanoidDiedConnection:Disconnect()
 	end
@@ -209,6 +216,10 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 
 	if ActionName == "Reload" and InputState == Enum.UserInputState.Begin then
 		self:ReloadWeapon()
+	end
+
+	if ActionName == "ADS" then
+		self:ToggleADS()
 	end
 
 	if ActionName == "Mouse" and InputState == Enum.UserInputState.Begin then
@@ -375,6 +386,7 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 end
 
 function CombatSys:ReloadWeapon()
+	print("Attempting to reload..")
 	local CurrentWeapon = self.CurrentWeapon
 	if not CurrentWeapon then
 		error("Cannot reload with no current weapon equipped!")
@@ -394,6 +406,7 @@ function CombatSys:ReloadWeapon()
 	self.States.ShouldFire = false
 	HUD:SetStats("--", "--")
 	self.Crosshair:SetProperty("Enabled", false)
+	print("Telling it to reload")
 	CurrentWeapon:Reload()
 	self.Crosshair:SetProperty("Enabled", true)
 	local NewAmmo = CurrentWeapon:GetStat("Ammo")
@@ -446,7 +459,7 @@ function CombatSys:Update(DeltaTime: number)
 			Camera.CFrame *= CFrame.Angles(X, Y, Z)
 		end
 
-		ViewModel:PivotTo(Camera.CFrame * CFrame.new(Vector3.new(0, 0, 0)))
+		ViewModel:PivotTo(Camera.CFrame * CFrame.new(self.GlobalOffset.Value))
 		ViewModel:SetPrimaryPartCFrame(ViewModel.PrimaryPart.CFrame * CFrame.Angles(0, -Sway.x, Sway.y))
 	end
 

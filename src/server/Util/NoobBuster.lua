@@ -1,13 +1,20 @@
-local NoobBuster = {
-	Messages = {
-		NO_ACCESS_TO_PlACE = "We have no idea how you managed to join but you are not allowed here. Yet.",
-		BANNED = "You have been banned. \n Reason: %s \n Time Remaining: %s \n\n If you think this is a mistake, please open a support ticket.",
-	},
+-- NoobBuster.lua - 2022/03/30
+-- Purpose: Anti-cheat? I guess?
+
+local NoobBuster = {}
+local Codes = {
+	[-17] = "Cannot donate to one-self.",
+	[0] = "Reserved",
+	[404] = "Profile not found. This might be an issue with Roblox.",
 }
 
-function NoobBuster:KickWithMessage(Player: Player, Message: string)
-	local NoobBusterMessage = string.format("[NOOBBUSTR]\n %s", Message)
-	Player:Kick(NoobBusterMessage)
+function NoobBuster:Kick(Player: Player, Code: number, ...)
+	local CodeText = Codes[Code]
+	if not CodeText then
+		CodeText = "???"
+	end
+
+	Player:Kick("Noobbuster " .. tostring(Code) .. ": " .. CodeText)
 end
 
 return NoobBuster

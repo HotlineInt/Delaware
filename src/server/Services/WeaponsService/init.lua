@@ -319,7 +319,37 @@ function WeaponService.Client:FireWeapon(Player: Player, Weapon: Tool, FiresTo: 
 
 	WeaponService:SetState(Weapon, StateEnum.Firing)
 
-	BaseType:FireWeapon(Player, Weapon, FiresTo)
+	local Damage = Weapon:GetAttribute("Damage")
+	local Character = Player.Character
+
+	local Params: RaycastParams = RaycastParams.new()
+	Params.FilterType = Enum.RaycastFilterType.Blacklist
+	Params.FilterDescendantsInstances = { Character }
+
+	local Origin = Character.Head.Position
+	local Direction = (FiresTo - Origin).Unit
+
+	local Result = workspace:Raycast(Origin, Direction * 300, Params)
+
+	if Result then
+		--RayVisualizer(Origin, Result.Position)
+		local Humanoid = WeaponService:GetHumanoid(Result.Instance)
+
+		if Humanoid then
+			self.OnPlayerHit:Fire(Player, Result.Instance, Damage)
+			Humanoid:TakeDamage(Damage)
+		end
+
+		self.OnEffectRequest:Fire(Player, "Wall", Result.Instance, Result.Position, Result.Normal)
+		self.OnEffectRequest:Fire(Player, "Sound", Result.Instance)
+
+		Humanoid = nil
+	else
+		warn("Raycasting failed!", Player)
+	end
+
+	Weapon:SetAttribute("Ammo", Weapon:GetAttribute("Ammo") - 1)
+	WeaponService:SetState(Weapon, "Idle")
 
 	task.delay(Config.FireDelay, function()
 		WeaponService:SetState(Weapon, StateEnum.Idle)
