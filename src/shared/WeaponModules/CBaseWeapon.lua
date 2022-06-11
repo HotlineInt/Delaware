@@ -71,7 +71,8 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 	if not ViewModel then
 		error(string.format("Invalid ViewModel provided for %s", Tool.Name))
 	end
-	self.ViewModel = ViewModel:Clone()
+	ViewModel = ViewModel:Clone()
+	self.ViewModel = ViewModel
 	local Animator
 	local Humanoid = ViewModel:FindFirstChild("Humanoid")
 	if Humanoid then
@@ -80,6 +81,7 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 		Animator = ViewModel:FindFirstChildOfClass("AnimationController")
 	end
 
+	ViewModel.Parent = ReplicatedStorage
 	if Animator then
 		for _, Animation: Animation in pairs(Animations:GetChildren()) do
 			local Track: AnimationTrack = Animator:LoadAnimation(Animation)
@@ -126,9 +128,12 @@ function CBaseWeapon:PlayAnimation(AnimationName: string, Loop: boolean)
 	local Animation = self.Animations[AnimationName]
 
 	if Animation then
+		print("Playing", Animation)
 		Animation:Play()
 		WeaponsService:PlayAnimation(self.Tool, AnimationName)
 		return Animation
+	else
+		print("nah fam")
 	end
 end
 
@@ -168,8 +173,7 @@ function CBaseWeapon:Equip()
 	local EquipAnim: AnimationTrack = self:PlayAnimation("Equip")
 	self:PlaySound("Equip")
 	WeaponsService:WeaponEquipped(self.Tool)
-	print("yahoo")
-	--EquipAnim.Stopped:Wait()
+	EquipAnim.Stopped:Wait()
 	self:PlayAnimation("Idle")
 	task.wait(0.05)
 

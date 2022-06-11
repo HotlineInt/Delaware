@@ -375,12 +375,9 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 	local ViewModel = Weapon.ViewModel
 	ViewModel.Parent = Camera
 	self.CurrentWeapon.ViewModel = ViewModel
+	self.States.ShouldUpdate = true
 
 	self.CurrentWeapon:Equip()
-
-	print("updating")
-	-- Set ShouldUpdate to true
-	self.States.ShouldUpdate = true
 	self.Crosshair:SetProperty("Enabled", true)
 	print("Equipped " .. Weapon.Name)
 end
