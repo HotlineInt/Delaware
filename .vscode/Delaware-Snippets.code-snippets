@@ -44,6 +44,21 @@
 		],
 		"description": "Roblox Service"
 	},
+	"CarbonModule": {
+		"scope": "lua,luau",
+		"prefix": "cm",
+		"body": [
+			"local Carbon = require(game:GetService(\"ReplicatedStorage\"):WaitForChild(\"Carbon\"))",
+			"",
+			"local ${0:} = {}",
+			"",
+			"function ${0:}:Load()",
+			"",
+			"end",
+			"",
+			"return ${0:}",
+		]
+	},
 	"Knit Service": {
 		"prefix": [
 			"knitservice"
