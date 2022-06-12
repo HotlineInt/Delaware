@@ -7,7 +7,7 @@ return function(Props: {})
 		Name = "Crosshair",
 		Enabled = false,
 		IgnoreGuiInset = true,
-		ResetOnSpawn = true,
+		ResetOnSpawn = false,
 		[CUI.Children] = {
 			CUI:CreateElement("ImageLabel", {
 				Size = UDim2.new(0, 10, 0, 10),
