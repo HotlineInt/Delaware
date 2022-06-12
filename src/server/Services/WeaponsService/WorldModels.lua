@@ -16,9 +16,25 @@ function WorldModels:GetWorldModel(ModelName)
 end
 
 -- get player world model
-function WorldModels:GetPlayerWorldModel(Player: Player, Tool: Tool)
+function WorldModels:GetPlayerWorldModel(Player: Player, Tool: Tool): Model
 	local WorldModel = self.AvailableWorldModels[Player][Tool]
 	return WorldModel
+end
+
+function WorldModels:AttachModel(AttachPoint: string, Character: Model, Model: Model)
+	local HumanoidRootPart = Character.HumanoidRootPart
+
+	local AttachPart = Character:FindFirstChild(AttachPoint)
+	if not AttachPart then
+		return "attachpoint_404"
+	end
+
+	local Motor6D = Instance.new("Motor6D")
+	Motor6D.Parent = HumanoidRootPart
+	Motor6D.Name = "WorldModelAttach"
+
+	Motor6D.Part0 = AttachPart
+	Motor6D.Part1 = Model.PrimaryPart
 end
 
 function WorldModels:AddWorldModel(Player: Player, Tool: Tool, WorldModel: string)
@@ -42,17 +58,11 @@ function WorldModels:AddWorldModel(Player: Player, Tool: Tool, WorldModel: strin
 	self.AvailableWorldModels[Player][Tool] = Model
 
 	Model.Parent = Character
-	local AttachPart = Character:FindFirstChild(AttachPoint)
-	if not AttachPart then
-		error("Invalid attachpoint provided: " .. Tool.Name)
+	local Result = self:AttachModel(AttachPoint, Character, Model)
+
+	if Result == "attachpoint_404" then
+		error("AttachPoint not found: " .. AttachPoint)
 	end
-
-	local Motor6D = Instance.new("Motor6D")
-	Motor6D.Parent = HumanoidRootPart
-	Motor6D.Name = "WorldModelAttach"
-
-	Motor6D.Part0 = AttachPart
-	Motor6D.Part1 = Model.PrimaryPart
 
 	for _, Part in pairs(Model:GetChildren()) do
 		if not Part:IsA("BasePart") then

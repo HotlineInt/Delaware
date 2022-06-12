@@ -1,6 +1,7 @@
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local Knit = require(Carbon.Framework.Knit)
 local Signal = require(Carbon.Util.Signal)
+local Create = require(Carbon.Util.Create)
 
 local Players = game:GetService("Players")
 
@@ -26,8 +27,6 @@ local WorldModelUtil = require(script.WorldModels)
 local ReloadThreads = {}
 local Connections = {}
 local AnimationTracks = {}
-
-local BaseType = require(script.Types.BaseType).new(WeaponService)
 
 -- Player pass, really messy
 -- All to just make hats not be taken into account while casting a ray....
@@ -61,6 +60,18 @@ function WeaponService:KnitStart()
 			end)
 
 			task.defer(function()
+				local Torso = Character:WaitForChild("UpperTorso")
+
+				-- Creating the holster attachment here, because Roblox
+				-- does not support keeping Attachments anywhere outside a BasePart
+				local Attachment = Create("Attachment", {
+					Name = "HolsterAttachment",
+					Orientation = Vector3.new(-45, 90, 0),
+					Position = Vector3.new(0, 0, 0.6),
+					Parent = Torso,
+				})
+				Attachment.Parent = Torso
+
 				for _, Hat in pairs(Character:GetChildren()) do
 					if Hat:IsA("Accessory") then
 						for _, Part: BasePart in pairs(Hat:GetDescendants()) do
@@ -199,7 +210,22 @@ function WeaponService.Client:WeaponEquipped(Player: Player, Weapon: Tool)
 
 	local WorldModel = Weapon:GetAttribute("WorldModel")
 
-	WorldModelUtil:AddWorldModel(Player, Weapon, WorldModel)
+	local existing_world_model = WorldModelUtil:GetPlayerWorldModel(Player, Weapon)
+	local Character = Player.Character
+	local Torso = Character.UpperTorso
+
+	local HolsterMotor = Torso:FindFirstChild("HolsterMotor")
+
+	if HolsterMotor then
+		HolsterMotor:Destroy()
+	end
+
+	if existing_world_model then
+		existing_world_model.Parent = Player.Character
+		WorldModelUtil:AttachModel(Weapon:GetAttribute("AttachPoint"), Player.Character, existing_world_model)
+	else
+		WorldModelUtil:AddWorldModel(Player, Weapon, WorldModel)
+	end
 end
 
 function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Tool)
@@ -215,7 +241,24 @@ function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Tool)
 		task.cancel(Thread)
 	end
 
-	WorldModelUtil:RemoveWorldModel(Player, Weapon)
+	local Character = Player.Character
+	local HumanoidRoot = Character.HumanoidRootPart
+
+	local WorldModel = WorldModelUtil:GetPlayerWorldModel(Player, Weapon)
+
+	if WorldModel then
+		HumanoidRoot.WorldModelAttach:Destroy()
+		WorldModel.Parent = Character.UpperTorso
+		local HolsterAttachment = Character.UpperTorso.HolsterAttachment
+
+		Create("Motor6D", {
+			Name = "HolsterMotor",
+			Part0 = Character.UpperTorso,
+			Part1 = WorldModel.PrimaryPart,
+			C0 = HolsterAttachment.CFrame,
+			Parent = Character.UpperTorso,
+		})
+	end
 end
 
 function WeaponService:GetState(Weapon: Tool): string
