@@ -23,11 +23,15 @@ local System = script.Parent:WaitForChild("System")
 Knit:Start():andThen(function()
 	Carbon:RegisterModule(System.Notification)
 	Carbon:RegisterModule(Core.CombatSystem)
-	Carbon:RegisterModule(Core.Console)
+	--	Carbon:RegisterModule(Core.Console)
 	Carbon:RegisterModule(Core.Footsteps)
 	Carbon:RegisterModule(Core.Settings.SettingsWidget)
 
-	Carbon:RegisterModule(System.Debug.EconomyTest)
+	Carbon:RegisterModule(System.Overlays)
+	--Carbon:RegisterModule(System.Debug.EconomyTest)
+	Carbon:RegisterModule(System.Debug.PerformanceStats)
+
+	Carbon:RegisterModule(Core.F4Menu)
 
 	Carbon:Start()
 	ComponentLoader(Core.Components)
