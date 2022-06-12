@@ -28,7 +28,6 @@ end
 
 function EconomyService.Client:TransferToBank(Player: Player, Amount: number)
 	local Profile = EconomyService:GetUserProfile(Player)
-	print(Profile)
 
 	if Profile then
 		if not EconomyService:PlayerHasEnoughCash(Profile, Amount) then
