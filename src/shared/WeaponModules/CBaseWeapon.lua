@@ -1,9 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local Class = require(Carbon.Util.Class)
--- get knit bridge
 local Knit = require(Carbon.Framework.Knit)
--- -- get WeaponsService
 local WeaponsService = Knit:GetService("WeaponsService")
 local Mouse = Carbon:GetPlayer():GetMouse()
 
@@ -184,7 +182,13 @@ function CBaseWeapon:Dequip()
 	self:StopAnimation("Idle")
 	WeaponsService:WeaponUnequipped(self.Tool)
 	self:PlaySound("Dequip")
-	self:PlayAnimation("Deequip")
+	local Dequip = self:PlayAnimation("Deequip")
+
+	if Dequip then
+		Dequip.Stopped:Wait()
+	end
+	self:StopAnimations()
+
 	print("Based")
 end
 
