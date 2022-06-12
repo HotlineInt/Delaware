@@ -16,6 +16,7 @@
       "$path": "src/client"
     },
     "ServerScriptService": {
+      "$ignoreUnknownInstances": true,
       "$className": "ServerScriptService",
       "$path": "src/server"
     }
