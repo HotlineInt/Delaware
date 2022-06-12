@@ -37,6 +37,10 @@ function TagService:KnitInit()
 	end)
 end
 
+function TagService.Client:GetValidTags()
+	return self.Tags
+end
+
 function TagService:PlayerHasTag(Player: Player, Tag: string)
 	local UserTags = self.PlayerTags[Player]
 	return table.find(UserTags, Tag) ~= nil
