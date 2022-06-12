@@ -1,4 +1,4 @@
-local SettingsManager = require(script.Parent.Parent.Settings.SettingsManager)
+local SettingsManager = require(script.Parent.Parent.Parent.Core.Settings.SettingsManager)
 
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local CUI = require(Carbon.UI.CUI)
