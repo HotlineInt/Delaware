@@ -24,6 +24,9 @@ for _, Service: ModuleScript in pairs(ServicesFolder:GetChildren()) do
 	TotalServices += 1
 end
 
+Carbon:RegisterModule(script.Parent.Debug.ToolGiver)
+Carbon:Start()
+
 warn("Loaded %d services", TotalServices)
 
 Knit:Start({ ServicePromises = false })
