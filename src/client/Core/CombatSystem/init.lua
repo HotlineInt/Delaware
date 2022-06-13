@@ -185,7 +185,13 @@ function CombatSys:_CreateTool(Tool: Tool)
 		return
 	end
 
+	-- check if the tool has already been loaded
+	if self.LoadedWeapons[Tool.Name] then
+		warn("Weapon " .. Tool.Name .. " has already been loaded.")
+		return
+	end
 	if self.LoadedTools[Tool] then
+		warn("Tool " .. Tool.Name .. " has already been loaded.")
 		return
 	end
 
@@ -356,6 +362,8 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 	-- Define variables based on the type
 
 	-- Check if given weapon is not self.CurrentWeapon
+
+	print(self.CurrentWeapon, Weapon)
 	if self.CurrentWeapon == Weapon then
 		error("Cannot equip the current weapon")
 		return
