@@ -1,4 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
+
+local CombatSystem = require(ReplicatedFirst:WaitForChild("Core"):WaitForChild("CombatSystem"))
+
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local Class = require(Carbon.Util.Class)
 local Knit = require(Carbon.Framework.Knit)
@@ -9,6 +13,8 @@ local ViewModelFolder = ReplicatedStorage:WaitForChild("ViewModels")
 local SoundUtil = require(script.Parent.Util.Sound)
 
 local WeaponSpring = require(Carbon.Util.WeaponSpring)
+
+local CHandsModel = ViewModelFolder:WaitForChild("CHands")
 export type Weapon = {
 	Name: string,
 	FireMode: string,
@@ -41,6 +47,9 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 
 	local FireRate = Tool:GetAttribute("FireRate") or 700
 
+	local WeaponModelName = Tool:GetAttribute("WeaponModel")
+	local UseHands = Tool:GetAttribute("UseHands")
+
 	if not Animations then
 		Animations = Instance.new("Folder", Tool)
 		Animations.Name = "Animations"
@@ -63,14 +72,28 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 			self.Sounds[Sound.Name] = Sound
 		end
 	end
+	local ViewModel
+	if not UseHands then
+		ViewModel = ViewModelFolder:WaitForChild(ViewModelName, 4)
+		assert(ViewModel, string.format("Invalid ViewModel provided for %s", Tool.Name))
 
-	local ViewModel = ViewModelFolder:WaitForChild(ViewModelName, 4)
+		ViewModel = ViewModel:Clone()
+		self.ViewModel = ViewModel
+	else
+		local WeaponModel = ViewModelFolder.Weapons:FindFirstChild(WeaponModelName)
+		assert(WeaponModel, "Invalid WeaponModel provided for " .. Tool.Name)
+		ViewModel = CHandsModel:Clone()
 
-	if not ViewModel then
-		error(string.format("Invalid ViewModel provided for %s", Tool.Name))
+		WeaponModel.Parent = ViewModel
+		local ModelConnector = Instance.new("Motor6D")
+		ModelConnector.Name = "ModelConnector"
+		ModelConnector.Parent = ViewModel
+		ModelConnector.Part0 = ViewModel.RightHand
+		ModelConnector.Part1 = WeaponModel.PrimaryPart
+
+		self.ViewModel = ViewModel
 	end
-	ViewModel = ViewModel:Clone()
-	self.ViewModel = ViewModel
+
 	local Animator
 	local Humanoid = ViewModel:FindFirstChild("Humanoid")
 	if Humanoid then
@@ -125,7 +148,7 @@ end
 function CBaseWeapon:PlayAnimation(AnimationName: string, Loop: boolean)
 	local Animation = self.Animations[AnimationName]
 
-	if Animation then
+	if Animation and CombatSystem.CurrentWeapon == self then
 		print("Playing", Animation)
 		Animation:Play()
 		WeaponsService:PlayAnimation(self.Tool, AnimationName)
@@ -173,23 +196,14 @@ function CBaseWeapon:Equip()
 	WeaponsService:WeaponEquipped(self.Tool)
 	EquipAnim.Stopped:Wait()
 	self:PlayAnimation("Idle")
-	task.wait(0.05)
 
 	EquipAnim = nil
 end
 
 function CBaseWeapon:Dequip()
-	self:StopAnimation("Idle")
 	WeaponsService:WeaponUnequipped(self.Tool)
-	self:PlaySound("Dequip")
-	local Dequip = self:PlayAnimation("Deequip")
-
-	if Dequip then
-		Dequip.Stopped:Wait()
-	end
 	self:StopAnimations()
-
-	print("Based")
+	self:PlaySound("Dequip")
 end
 
 function CBaseWeapon:SetStat(Name: string, Value: any)
