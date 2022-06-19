@@ -13,6 +13,8 @@ local ContextActionService = game:GetService("ContextActionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 
+local Janitor = require(Carbon.Util.NakoJanitor)
+
 local Player = Carbon:GetPlayer()
 local ViewModels = game:GetService("ReplicatedStorage"):WaitForChild("ViewModels")
 local WeaponModules = game:GetService("ReplicatedStorage"):WaitForChild("WeaponModules")
@@ -25,6 +27,13 @@ local HitIndicator = require(script.HitIndicator)
 local EffectsHandler = require(script.EffectsHandler)
 
 local CrossHair = require(script.Crosshair)
+local WeaponStates = {
+	Equipping = "EQUIPPING",
+	Idle = "IDLE",
+	Firing = "FIRING",
+	Reloading = "RELOADING",
+	SPRINTING = "SPRINTING",
+}
 
 local CombatSys = {
 	CurrentWeapon = nil,
@@ -36,13 +45,12 @@ local CombatSys = {
 		CanEquip = false,
 		ShouldUpdate = false,
 		ShouldFire = false,
-		IsInAds = false,
+		CanFire = false,
 	},
+	State = "",
 	GlobalOffset = Instance.new("Vector3Value"),
+	Janitor = nil,
 }
-local HumanoidDiedConnection
-local HumanoidDamaged
-
 local LastHealth
 
 export type Weapon = {
@@ -69,6 +77,7 @@ function CombatSys:Load()
 		end)
 	end)
 
+	self.Janitor = Janitor.new()
 	self.Crosshair = CrossHair()
 	self.Crosshair:Mount(Player.PlayerGui)
 
@@ -121,15 +130,7 @@ function CombatSys:ProcessVM(ViewModel: Model)
 end
 
 function CombatSys:OnCharacterAdded(Character: Model)
-	print("man fuc king kill yourself")
-
-	if HumanoidDiedConnection then
-		HumanoidDiedConnection:Disconnect()
-	end
-
-	if HumanoidDamaged then
-		HumanoidDamaged:Disconnect()
-	end
+	self.Janitor:Cleanup()
 
 	-- clear up varaibles
 	self.States.ShouldFire = false
@@ -144,7 +145,8 @@ function CombatSys:OnCharacterAdded(Character: Model)
 	local Humanoid: Humanoid = Character:WaitForChild("Humanoid")
 	LastHealth = Humanoid.MaxHealth
 
-	HumanoidDiedConnection = Humanoid.Died:Connect(function()
+	self.Janitor:Add(Humanoid.Died:Connect(function()
+		print("Humanoid died")
 		DamageIndicator:UserDead()
 		-- Massive cleanup
 		self:DequipWeapon()
@@ -153,17 +155,18 @@ function CombatSys:OnCharacterAdded(Character: Model)
 		self.States.ShouldFire = false
 		self.States.ShouldUpdate = false
 		self.States.CanEquip = false
-	end)
+	end))
 
 	DamageIndicator:Reset()
 
-	HumanoidDamaged = Humanoid.HealthChanged:Connect(function(Health: number)
+	self.Janitor:Add(Humanoid.HealthChanged:Connect(function(Health: number)
+		print("Health changed:", Health)
 		if Health < LastHealth then
 			DamageIndicator:OnDamage()
 		end
 
 		LastHealth = Health
-	end)
+	end))
 
 	-- childadded on backpack
 	-- just connect ChildAdded
@@ -307,6 +310,10 @@ function CombatSys:GetState()
 	return self.CurrentWeapon.Tool:GetAttribute("State")
 end
 
+function CombatSys:SetCanFire(Toggle: boolean)
+	self.States.CanFire = Toggle
+end
+
 function CombatSys:SetStat(StatName: string, Value: any): nil
 	if not self.CurrentWeapon then
 		error("Can't do this with no CurrentWeapon")
@@ -317,6 +324,11 @@ function CombatSys:SetStat(StatName: string, Value: any): nil
 end
 
 function CombatSys:FireWeapon()
+	if not self.States.CanFire then
+		warn("Firing is unavailable.")
+		return
+	end
+
 	-- get current weapon
 	local CurrentWeapon = self.CurrentWeapon
 
@@ -357,13 +369,14 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 		return
 	end
 
+	self.Crosshair:SetProperty("Enabled", true)
 	self.States.ShouldFire = false
 	self.States.ShouldUpdate = false
+	self:SetCanFire(false)
 	-- Define variables based on the type
 
 	-- Check if given weapon is not self.CurrentWeapon
 
-	print(self.CurrentWeapon, Weapon)
 	if self.CurrentWeapon == Weapon then
 		error("Cannot equip the current weapon")
 		return
@@ -375,23 +388,16 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 		self:DequipWeapon()
 	end
 
-	print("setting currentweapon")
-	-- Set current weapon to the given weapon
-	self.CurrentWeapon = Weapon
-
-	print("setting viewmodel")
 	local ViewModel = Weapon.ViewModel
 	ViewModel.Parent = Camera
-	self.CurrentWeapon.ViewModel = ViewModel
 	self.States.ShouldUpdate = true
+	self.CurrentWeapon = Weapon
 
-	self.CurrentWeapon:Equip()
-	self.Crosshair:SetProperty("Enabled", true)
-	print("Equipped " .. Weapon.Name)
+	Weapon:Equip()
+	self:SetCanFire(true)
 end
 
 function CombatSys:ReloadWeapon()
-	print("Attempting to reload..")
 	local CurrentWeapon = self.CurrentWeapon
 	if not CurrentWeapon then
 		error("Cannot reload with no current weapon equipped!")
@@ -410,12 +416,11 @@ function CombatSys:ReloadWeapon()
 
 	self.States.ShouldFire = false
 	HUD:SetStats("--", "--")
-	self.Crosshair:SetProperty("Enabled", false)
-	print("Telling it to reload")
+	self:SetCanFire(false)
 	CurrentWeapon:Reload()
-	self.Crosshair:SetProperty("Enabled", true)
 	local NewAmmo = CurrentWeapon:GetStat("Ammo")
 	HUD:SetStats(NewAmmo, CurrentWeapon.MaxAmmo)
+	self:SetCanFire(true)
 	NewAmmo = nil
 end
 
@@ -424,25 +429,25 @@ function CombatSys:DequipWeapon()
 		warn("You cannot deequip right now.")
 		return
 	end
-
-	self.States.ShouldFire = false
-	self.States.ShouldUpdate = false
 	-- Check if there's an current weapon available
 	if not self.CurrentWeapon then
-		-- debug error. I'm sorry.
 		warn("Cannot dequip with no weapon equipped")
 		return
 	end
+
+	self.Crosshair:SetProperty("Enabled", false)
+	self:SetCanFire(false)
+
+	self.States.ShouldFire = false
+	self.States.ShouldUpdate = false
 
 	-- Dequip the weapon
 	self.CurrentWeapon.ViewModel.Parent = nil
 	-- Cleanup
 	self.CurrentWeapon:Dequip()
 
-	-- Set ShouldUpdate to false
 	self.States.ShouldUpdate = false
 	self.CurrentWeapon = nil
-	self.Crosshair:SetProperty("Enabled", false)
 end
 
 function CombatSys:Update(DeltaTime: number)
@@ -457,7 +462,6 @@ function CombatSys:Update(DeltaTime: number)
 		local Sway = CurrentWeapon.Springs.Sway:Update(DeltaTime)
 		CurrentWeapon.Springs.Sway:Shove(Vector3.new(MouseDelta.X / 200, MouseDelta.Y / 200))
 		local Recoil = CurrentWeapon.Springs.Recoil:Update(DeltaTime)
-		local ViewBob = math.sin(tick()) + 0.5
 
 		if CurrentWeapon.CanRecoil then
 			local X, Y, Z = Recoil.X, Recoil.Y, Recoil.Z --CurrentWeapon.RecoilConfig.X, CurrentWeapon.RecoilConfig.Y, CurrentWeapon.RecoilConfig.Z
