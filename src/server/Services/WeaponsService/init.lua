@@ -363,7 +363,6 @@ function WeaponService:ProcessDamage(
 
 	if DamageValue then
 		-- for more complex tools
-		print(DamageValue.MinValue, DamageValue.MaxValue)
 		Damage = math.random(DamageValue.MinValue, DamageValue.MaxValue)
 	else
 		-- for simple tools
@@ -380,7 +379,7 @@ function WeaponService:ProcessDamage(
 	if DamageFallOff then
 		local Distance = Player:DistanceFromCharacter(Result.Position)
 
-		Damage -= Damage * (Distance / 70)
+		Damage -= Damage * (Distance / 35)
 	end
 
 	local Humanoid = self:GetHumanoid(Result.Instance)
