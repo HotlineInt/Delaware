@@ -19,6 +19,7 @@ local WeaponService = {
 		OnEffectRequest = Knit:CreateSignal("OnEffectRequest"),
 	},
 	StateEnum = StateEnum,
+	Types = {},
 }
 
 local WorldModelUtil = require(script.WorldModels)
@@ -34,6 +35,10 @@ local AnimationTracks = {}
 -- and all to just ensure that memory leaks wont occur.... ouch!
 
 function WeaponService:KnitStart()
+	for _, Type in pairs(script.Types:GetChildren()) do
+		self.Types[Type.Name] = require(Type)
+	end
+
 	Players.PlayerAdded:Connect(function(Player: Player)
 		WorldModelUtil:InitialiePlayerTable(Player)
 		AnimationTracks[Player] = {}
@@ -214,7 +219,7 @@ function WeaponService.Client:WeaponEquipped(Player: Player, Weapon: Tool)
 	local Character = Player.Character
 	local Torso = Character.UpperTorso
 
-	local HolsterMotor = Torso:FindFirstChild("HolsterMotor")
+	local HolsterMotor = Torso:FindFirstChild(WorldModel .. "HolsterMotor")
 
 	if HolsterMotor then
 		HolsterMotor:Destroy()
@@ -247,12 +252,17 @@ function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Tool)
 	local WorldModel = WorldModelUtil:GetPlayerWorldModel(Player, Weapon)
 
 	if WorldModel then
-		HumanoidRoot.WorldModelAttach:Destroy()
+		--WorldModel.Parent = nil
+		local Attachment = HumanoidRoot:FindFirstChild(WorldModel.Name .. "Attach")
+		if Attachment then
+			Attachment:Destroy()
+		end
+
 		WorldModel.Parent = Character.UpperTorso
 		local HolsterAttachment = Character.UpperTorso.HolsterAttachment
 
 		Create("Motor6D", {
-			Name = "HolsterMotor",
+			Name = WorldModel.Name .. "HolsterMotor",
 			Part0 = Character.UpperTorso,
 			Part1 = WorldModel.PrimaryPart,
 			C0 = HolsterAttachment.CFrame,
@@ -341,11 +351,45 @@ function WeaponService:GetHumanoid(Instance: BasePart): Humanoid | nil
 	return Humanoid
 end
 
---[[
-	~~TODO: Minimize the amount of data sent by the client for each request (Fire, Reload)
+function WeaponService:ProcessDamage(
+	Player: Player,
+	Weapon: Tool,
+	Result: RaycastResult,
+	CanHeadShot: boolean,
+	DamageFallOff: boolean
+)
+	local DamageValue: DoubleConstrainedValue = Weapon:FindFirstChild("Damage")
+	local Damage
 
-		^ Acomplished!
-	]]
+	if DamageValue then
+		-- for more complex tools
+		print(DamageValue.MinValue, DamageValue.MaxValue)
+		Damage = math.random(DamageValue.MinValue, DamageValue.MaxValue)
+	else
+		-- for simple tools
+		Damage = Weapon:GetAttribute("Damage")
+	end
+
+	if CanHeadShot then
+		-- You're screwed
+		if Result.Instance.Name == "Head" then
+			Damage *= 15
+		end
+	end
+
+	if DamageFallOff then
+		local Distance = Player:DistanceFromCharacter(Result.Position)
+
+		Damage -= Damage * (Distance / 70)
+	end
+
+	local Humanoid = self:GetHumanoid(Result.Instance)
+
+	if Humanoid then
+		self.Client.OnPlayerHit:Fire(Player, Result.Instance, Damage)
+		Humanoid:TakeDamage(Damage)
+	end
+end
 
 function WeaponService.Client:FireWeapon(Player: Player, Weapon: Tool, FiresTo: Vector3): nil
 	if not WeaponService:Verify(Player, Weapon, true) then
@@ -362,7 +406,7 @@ function WeaponService.Client:FireWeapon(Player: Player, Weapon: Tool, FiresTo: 
 
 	WeaponService:SetState(Weapon, StateEnum.Firing)
 
-	local Damage = Weapon:GetAttribute("Damage")
+	local Type = Weapon:GetAttribute("FireType") or "Bullet"
 	local Character = Player.Character
 
 	local Params: RaycastParams = RaycastParams.new()
@@ -372,24 +416,9 @@ function WeaponService.Client:FireWeapon(Player: Player, Weapon: Tool, FiresTo: 
 	local Origin = Character.Head.Position
 	local Direction = (FiresTo - Origin).Unit
 
-	local Result = workspace:Raycast(Origin, Direction * 300, Params)
+	local TypeCallback = self.Server.Types[Type]
 
-	if Result then
-		--RayVisualizer(Origin, Result.Position)
-		local Humanoid = WeaponService:GetHumanoid(Result.Instance)
-
-		if Humanoid then
-			self.OnPlayerHit:Fire(Player, Result.Instance, Damage)
-			Humanoid:TakeDamage(Damage)
-		end
-
-		self.OnEffectRequest:Fire(Player, "Wall", Result.Instance, Result.Position, Result.Normal)
-		self.OnEffectRequest:Fire(Player, "Sound", Result.Instance)
-
-		Humanoid = nil
-	else
-		warn("Raycasting failed!", Player)
-	end
+	TypeCallback(Player, Weapon, Origin, Direction)
 
 	Weapon:SetAttribute("Ammo", Weapon:GetAttribute("Ammo") - 1)
 	WeaponService:SetState(Weapon, "Idle")
