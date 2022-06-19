@@ -81,8 +81,9 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 		self.ViewModel = ViewModel
 	else
 		local WeaponModel = ViewModelFolder.Weapons:FindFirstChild(WeaponModelName)
-		assert(WeaponModel, "Invalid WeaponModel provided for " .. Tool.Name)
+		assert(WeaponModel, "Invalid WeaponModel provided for " .. Tool.Name .. '"' .. WeaponModelName .. '"')
 		ViewModel = CHandsModel:Clone()
+		WeaponModel = WeaponModel:Clone()
 
 		WeaponModel.Parent = ViewModel
 		local ModelConnector = Instance.new("Motor6D")
@@ -244,7 +245,6 @@ end
 function CBaseWeapon:Reload()
 	local Ammo = self.Tool:GetAttribute("Ammo")
 
-	print(Ammo, self.MaxAmmo)
 	if Ammo < self.MaxAmmo then
 		self.Reloading = true
 		self:PlayAnimation("Reload")
@@ -253,6 +253,19 @@ function CBaseWeapon:Reload()
 		print("contain me	")
 		self.Reloading = false
 	end
+end
+
+function CBaseWeapon:Destroy()
+	self.ViewModel:Destroy()
+	self.ADSOffset = nil
+	self.Springs = {}
+
+	for _, Connection: RBXScriptConnection in pairs(self.Connections) do
+		Connection:Disconnect()
+	end
+
+	self.Name = nil
+	self.RecoilConfig = nil
 end
 
 return CBaseWeapon
