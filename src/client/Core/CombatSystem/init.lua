@@ -138,7 +138,11 @@ function CombatSys:OnCharacterAdded(Character: Model)
 
 	self.CurrentWeapon = nil
 	self.LoadedTools = {}
-	self.LoadedWeapons = {}
+
+	-- Cleanup old unused weapons
+	for _, Weapon: Weapon in pairs(self.LoadedWeapons) do
+		Weapon:Destroy()
+	end
 
 	-- get backpack
 	local Backpack: Backpack = Player:WaitForChild("Backpack")
@@ -146,7 +150,6 @@ function CombatSys:OnCharacterAdded(Character: Model)
 	LastHealth = Humanoid.MaxHealth
 
 	self.Janitor:Add(Humanoid.Died:Connect(function()
-		print("Humanoid died")
 		DamageIndicator:UserDead()
 		-- Massive cleanup
 		self:DequipWeapon()
@@ -160,16 +163,12 @@ function CombatSys:OnCharacterAdded(Character: Model)
 	DamageIndicator:Reset()
 
 	self.Janitor:Add(Humanoid.HealthChanged:Connect(function(Health: number)
-		print("Health changed:", Health)
 		if Health < LastHealth then
 			DamageIndicator:OnDamage()
 		end
 
 		LastHealth = Health
 	end))
-
-	-- childadded on backpack
-	-- just connect ChildAdded
 
 	for _, Tool in pairs(Backpack:GetChildren()) do
 		self:_CreateTool(Tool)
@@ -462,13 +461,14 @@ function CombatSys:Update(DeltaTime: number)
 		local Sway = CurrentWeapon.Springs.Sway:Update(DeltaTime)
 		CurrentWeapon.Springs.Sway:Shove(Vector3.new(MouseDelta.X / 200, MouseDelta.Y / 200))
 		local Recoil = CurrentWeapon.Springs.Recoil:Update(DeltaTime)
+		local ViewBob = math.sin(tick()) / 20
 
 		if CurrentWeapon.CanRecoil then
 			local X, Y, Z = Recoil.X, Recoil.Y, Recoil.Z --CurrentWeapon.RecoilConfig.X, CurrentWeapon.RecoilConfig.Y, CurrentWeapon.RecoilConfig.Z
 			Camera.CFrame *= CFrame.Angles(X, Y, Z)
 		end
 
-		ViewModel:PivotTo(Camera.CFrame * CFrame.new(self.GlobalOffset.Value))
+		ViewModel:PivotTo(Camera.CFrame * CFrame.new(self.GlobalOffset.Value) * CFrame.new(Vector3.new(0, ViewBob, 0)))
 		ViewModel:SetPrimaryPartCFrame(ViewModel.PrimaryPart.CFrame * CFrame.Angles(0, -Sway.x, Sway.y))
 	end
 
