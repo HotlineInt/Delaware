@@ -6,6 +6,8 @@ local JobService = {
 	JobInfo = require(script.Parent.EconomyService.JobInfo),
 }
 
+local TagService = require(script.Parent.TagService)
+
 function JobService:KnitInit()
 	-- Create a data table
 	for Job, _ in pairs(JobService.JobInfo) do
@@ -65,6 +67,11 @@ function JobService.Client:JoinJob(Player: Player, Job: string)
 	local JobInfo = self.Server.JobInfo[Job]
 
 	if JobInfo then
+		local CanJoin = self.Server:PlayerHasRequiredTags(Player, JobInfo)
+		if not CanJoin then
+			return "Failure: Unable to join group because of an error."
+		end
+
 		local UserProfile = EconomyService:GetUserProfile(Player)
 
 		if UserProfile then
@@ -79,6 +86,19 @@ function JobService.Client:JoinJob(Player: Player, Job: string)
 			return "Success: You are now working as a " .. Job
 		end
 	end
+end
+
+function JobService:PlayerHasRequiredTags(Player: Player, Job: {})
+	local UserTags = TagService:GetTags(Player)
+
+	for _, Tag in pairs(Job.RequiredTags) do
+		print(Tag, UserTags)
+		if not table.find(UserTags, Tag) then
+			return false
+		end
+	end
+
+	return true
 end
 
 function JobService.Client:LeaveJob(Player: Player, Job: string)
@@ -97,6 +117,20 @@ function JobService.Client:LeaveJob(Player: Player, Job: string)
 
 		return "Success: You are now unemployed."
 	end
+end
+
+function JobService.Client:GetJobs(Player: Player)
+	local FinalJobs = JobService.JobInfo
+
+	for JobIndex, Job in pairs(FinalJobs) do
+		local HasTag = JobService:CanPlayerJoinJobs(Player, Job)
+
+		if not HasTag then
+			FinalJobs[JobIndex] = nil
+		end
+	end
+
+	return FinalJobs
 end
 
 return JobService
