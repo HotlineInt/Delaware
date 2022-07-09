@@ -4,3 +4,6 @@
 [submodule "Packages/TopbarPlus"]
 	path = Packages/TopbarPlus
 	url = https://github.com/HotlineInt/TopbarPlus
+[submodule "src/shared/Cmdr"]
+	path = src/shared/Cmdr
+	url = https://github.com/evaera/Cmdr

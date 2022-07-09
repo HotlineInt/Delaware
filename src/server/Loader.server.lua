@@ -13,7 +13,7 @@ local GameVersion = "v0.2a"
 workspace:SetAttribute("GameVersion", GameVersion)
 
 warn("Data initialization..")
-local PlayerStore = NakoProfile:MakeStore("PlayerData", NakoProfile.Templates.Player)
+NakoProfile:MakeStore("PlayerData", NakoProfile.Templates.Player)
 
 local TotalServices = 0
 for _, Service: ModuleScript in pairs(ServicesFolder:GetChildren()) do
@@ -30,5 +30,8 @@ Carbon:Start()
 warn("Loaded %d services", TotalServices)
 
 Knit:Start({ ServicePromises = false })
+local Cmdr = require(ReplicatedStorage.Cmdr)
+Cmdr:RegisterHooksIn(script.Parent.CmdrHook)
+Cmdr:RegisterDefaultCommands()
 
 ComponentLoader(script.Parent.Components)

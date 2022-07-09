@@ -21,15 +21,16 @@ return function(Player: Player, Weapon: Tool, Origin: Vector3, Direction: Vector
 	CastBehaviour.RaycastParams = RaycastParams.new()
 	CastBehaviour.RaycastParams.FilterDescendantsInstances = { Player.Character, Weapon }
 	CastBehaviour.RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+	CastBehaviour.Acceleration = Vector3.new(0, -workspace.Gravity, 0)
 
-	Caster.RayHit:Connect(function(_, Result: RaycastResult, Velocity: Vector3)
+	Caster.RayHit:Connect(function(_, Result: RaycastResult)
 		WeaponService:ProcessDamage(Player, Weapon, Result, false, true)
 
 		WeaponService.Client.OnEffectRequest:Fire(Player, "Wall", Result.Instance, Result.Position, Result.Normal)
 		WeaponService.Client.OnEffectRequest:Fire(Player, "Sound", Result.Instance)
 	end)
 
-	for _ = 1, 10, 1 do
+	for _ = 1, MAX_SPREAD, 1 do
 		Fire(Origin, Direction, CastBehaviour)
 	end
 end

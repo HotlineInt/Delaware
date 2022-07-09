@@ -50,7 +50,7 @@ return function(Player: Player, Weapon: Tool, Origin: Vector3, Direction: Vector
 		Explosion.Parent = workspace
 
 		Explosion.Position = Result.Position
-		Explosion.BlastRadius = 10
+		Explosion.BlastRadius = 25
 		Explosion.BlastPressure = 500
 
 		WeaponService.Client:PlaySound(Player, Weapon, "Boom")

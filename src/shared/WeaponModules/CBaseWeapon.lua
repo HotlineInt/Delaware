@@ -108,7 +108,10 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 		for _, Animation: Animation in pairs(Animations:GetChildren()) do
 			local Track: AnimationTrack = Animator:LoadAnimation(Animation)
 
-			self.Animations[Animation.Name] = Track
+			self.Animations[Animation.Name] = {
+				Running = false,
+				Track = Track,
+			}
 		end
 	else
 		warn("Animator is missing for ViewModel", ViewModel, "Your animations will not work!")
@@ -141,31 +144,48 @@ end
 -- stop all animations
 function CBaseWeapon:StopAnimations()
 	for _, Animation in pairs(self.Animations) do
-		Animation:Stop()
+		Animation.Running = false
+		Animation.Track:Stop()
 	end
 end
 
 -- play/stop method
-function CBaseWeapon:PlayAnimation(AnimationName: string, Loop: boolean)
-	local Animation = self.Animations[AnimationName]
+function CBaseWeapon:PlayAnimation(AnimationName: string, Loop: boolean, ClientOnly: boolean, CheckIfRunning: boolean)
+	local Animation: { Playing: boolean, Track: AnimationTrack } = self.Animations[AnimationName]
 
 	if Animation and CombatSystem.CurrentWeapon == self then
-		print("Playing", Animation)
-		Animation:Play()
-		WeaponsService:PlayAnimation(self.Tool, AnimationName)
-		return Animation
+		local Track: AnimationTrack = Animation.Track
+
+		if CheckIfRunning == true then
+			if Animation.Running then
+				return
+			end
+		else
+			print("Playing", Animation)
+		end
+
+		Animation.Running = true
+		Track:Play()
+		if not ClientOnly then
+			WeaponsService:PlayAnimation(self.Tool, AnimationName)
+		end
+
+		return Animation.Track
 	else
 		print("nah fam")
 	end
 end
 
 -- stop anim
-function CBaseWeapon:StopAnimation(AnimationName: string)
+function CBaseWeapon:StopAnimation(AnimationName: string, Loop: boolean, ClientOnly: boolean)
 	local Animation = self.Animations[AnimationName]
 
 	if Animation then
-		WeaponsService:StopAnimation(self.Tool, AnimationName)
-		Animation:Stop()
+		if not ClientOnly then
+			WeaponsService:StopAnimation(self.Tool, AnimationName)
+		end
+		Animation.Running = false
+		Animation.Track:Stop()
 	end
 end
 

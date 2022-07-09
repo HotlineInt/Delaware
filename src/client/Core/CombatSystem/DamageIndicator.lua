@@ -48,6 +48,10 @@ function DamageIndicator:UserDead()
 end
 
 function DamageIndicator:Reset()
+	self.Tweens.Normalize:Cancel()
+	self.Tweens.DeadBlur:Cancel()
+	self.Tweens.Damage:Cancel()
+
 	self.Corrector.TintColor = Colors.Normal
 	self.Corrector.Brightness = 0
 	self.Blur.Size = 0

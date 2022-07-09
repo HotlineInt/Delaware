@@ -22,6 +22,7 @@ function F4Menu:Load()
 		[CUI.Children] = {
 			ModalBox(),
 			CUI:CreateElement("Frame", {
+				ClipsDescendants = true,
 				Name = "Container",
 				BackgroundColor3 = Color3.new(),
 				AnchorPoint = Vector2.new(0.5, 0.5),

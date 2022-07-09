@@ -199,6 +199,13 @@ function WeaponService:Verify(Host: Player, Weapon: Tool, AmmoCheck: boolean)
 		Ammo = nil
 	end
 
+	local InMagAttribute = Weapon:GetAttribute("InMag")
+	local WeaponAmmo: number = Weapon:GetAttribute("Ammo")
+
+	if InMagAttribute == nil then
+		Weapon:SetAttribute("InMag", WeaponAmmo)
+	end
+
 	Humanoid = nil
 	Character = nil
 	Weapon = nil
@@ -235,6 +242,11 @@ end
 
 function WeaponService.Client:WeaponUnequipped(Player: Player, Weapon: Tool)
 	local ReloadThread = ReloadThreads[Weapon]
+	local Tracks = AnimationTracks[Player][Weapon]
+
+	for _, Track: AnimationTrack in pairs(Tracks) do
+		Track:Stop()
+	end
 
 	if ReloadThread then
 		local Thread, Signal = ReloadThread[1], ReloadThread[2]
@@ -380,6 +392,10 @@ function WeaponService:ProcessDamage(
 		local Distance = Player:DistanceFromCharacter(Result.Position)
 
 		Damage -= Damage * (Distance / 35)
+
+		if DamageValue and Damage < DamageValue.MinValue then
+			Damage = DamageValue.MinValue - 2
+		end
 	end
 
 	local Humanoid = self:GetHumanoid(Result.Instance)
@@ -406,25 +422,31 @@ function WeaponService.Client:FireWeapon(Player: Player, Weapon: Tool, FiresTo: 
 	WeaponService:SetState(Weapon, StateEnum.Firing)
 
 	local Type = Weapon:GetAttribute("FireType") or "Bullet"
-	local Character = Player.Character
+	local UsesAmmo = Weapon:GetAttribute("UsesAmmo")
 
-	local Params: RaycastParams = RaycastParams.new()
-	Params.FilterType = Enum.RaycastFilterType.Blacklist
-	Params.FilterDescendantsInstances = { Character }
+	if UsesAmmo == nil then
+		UsesAmmo = true
+	end
+
+	local Character = Player.Character
 
 	local Origin = Character.Head.Position
 	local Direction = (FiresTo - Origin).Unit
 
 	local TypeCallback = self.Server.Types[Type]
 
-	TypeCallback(Player, Weapon, Origin, Direction)
+	local Result = TypeCallback(Player, Weapon, Origin, Direction)
 
-	Weapon:SetAttribute("Ammo", Weapon:GetAttribute("Ammo") - 1)
+	if UsesAmmo then
+		Weapon:SetAttribute("Ammo", Weapon:GetAttribute("Ammo") - 1)
+	end
 	WeaponService:SetState(Weapon, "Idle")
 
 	task.delay(Config.FireDelay, function()
 		WeaponService:SetState(Weapon, StateEnum.Idle)
 	end)
+
+	return Result
 
 	-- local Tool = Weapon.Tool
 	-- local Damage = Tool:GetAttribute("Damage")
@@ -465,7 +487,7 @@ end
 
 function WeaponService.Client:Reload(Player: Player, Weapon: Tool)
 	if not WeaponService:Verify(Player, Weapon, false) then
-		warn("User failed check. Reason above ^")
+		warn("User failed reload check. Reason above ^")
 		return
 	end
 
@@ -482,6 +504,7 @@ function WeaponService.Client:Reload(Player: Player, Weapon: Tool)
 	end
 
 	local Ammo = Weapon:GetAttribute("Ammo")
+	local InMag = Weapon:GetAttribute("InMag")
 	local MaxAmmo = Weapon:GetAttribute("MaxAmmo")
 	local ReloadTime = Weapon:GetAttribute("ReloadTime") or 5
 

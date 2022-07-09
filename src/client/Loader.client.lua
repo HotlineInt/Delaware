@@ -8,6 +8,7 @@ local ComponentLoader = require(ReplicatedStorage:WaitForChild("ComponentLoader"
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local ChatUtil = require(Carbon.Util.Chat)
 
+local Player = game:GetService("Players").LocalPlayer
 local Knit = require(Carbon.Framework.Knit)
 
 local LocalizedTags = {
@@ -20,60 +21,153 @@ local YOU_HAVE_MESSAGE = "DEBUG MESSAGE: You have the following tags: %s"
 local Core = script.Parent:WaitForChild("Core")
 local System = script.Parent:WaitForChild("System")
 
-Knit:Start():andThen(function()
-	Carbon:RegisterModule(System.Notification)
-	Carbon:RegisterModule(Core.CombatSystem)
-	--	Carbon:RegisterModule(Core.Console)
-	Carbon:RegisterModule(Core.Footsteps)
-	Carbon:RegisterModule(Core.Settings.SettingsWidget)
+function ConvertToHMS(Time: number)
+	local function Format(Int)
+		return string.format("%02i", Int)
+	end
 
-	Carbon:RegisterModule(System.Overlays)
-	--Carbon:RegisterModule(System.Debug.EconomyTest)
-	Carbon:RegisterModule(System.Debug.PerformanceStats)
+	local Seconds = Time
 
-	Carbon:RegisterModule(Core.F4Menu)
+	local Minutes = (Seconds - Seconds % 60) / 60
+	Seconds = Seconds - Minutes * 60
+	local Hours = (Minutes - Minutes % 60) / 60
+	Minutes = Minutes - Hours * 60
+	return Format(Hours) .. ":" .. Format(Minutes) .. ":" .. Format(Seconds)
+end
 
-	Carbon:Start()
-	ComponentLoader(Core.Components)
+local Stages = {
+	{
+		Text = "Awaiting server initialization",
+		Run = function()
+			Knit:Start():await()
+		end,
+	},
+	{
+		Text = "Registering modules",
+		Run = function(Label)
+			Carbon:RegisterModule(System.Notification)
+			Carbon:RegisterModule(Core.CombatSystem)
+			--	Carbon:RegisterModule(Core.Console)
+			Carbon:RegisterModule(Core.Footsteps)
 
-	ChatUtil:MakeSystemMessage("Welcome to Codename: Delaware")
+			Carbon:RegisterModule(Core.Settings.SettingsWidget)
 
-	-- Tag checking
-	local TagService = Knit:GetService("TagService")
-	TagService:GetTags():andThen(function(SelfTags: {})
-		local JoinedTags = ""
-		local Count = #SelfTags
+			Carbon:RegisterModule(System.Overlays)
+			--Carbon:RegisterModule(System.Debug.EconomyTest)
+			Carbon:RegisterModule(System.Debug.PerformanceStats)
 
-		if Count == 0 then
-			JoinedTags = "None"
-		end
+			Carbon:RegisterModule(Core.F4Menu)
+			Carbon:RegisterModule(Core.Sprinting)
+		end,
+	},
+	{
+		Text = "Starting Carbon",
+		Run = function()
+			Carbon:Start()
+		end,
+	},
 
-		for Index, Tag in ipairs(SelfTags) do
-			local Localized = LocalizedTags[Tag]
-			if Localized then
-				Localized = Tag
-			end
+	-- {
+	-- 	Text = "Checking for server maintenance..",
+	-- 	Run = function(Label)
+	-- 		-- test garbage ignore!!
+	-- 		local IS_MAINTENANCE = false
+	-- 		local TimeSpent = 0
 
-			print(Index, Tag)
-			if Index ~= Count then
-				print(",")
-				JoinedTags = JoinedTags .. Tag .. ", "
-			elseif Index == Count then
-				print("eol")
-				JoinedTags = JoinedTags .. Tag
-			end
-		end
+	-- 		while IS_MAINTENANCE do
+	-- 			-- Label:SetProperty(
+	-- 			-- 	"Text",
+	-- 			-- 	string.format("Maintenance in progress.. (waiting for %s)", ConvertToHMS(TimeSpent))
+	-- 			-- )
+	-- 			print(string.format("Maintenance in progress.. (waiting for %s)", ConvertToHMS(TimeSpent)))
+	-- 			TimeSpent += 1
 
-		ChatUtil:MakeSystemMessage(string.format(YOU_HAVE_MESSAGE, JoinedTags))
+	-- 			task.wait(1)
+	-- 		end
+	-- 	end,
+	-- },
+	{
+		Text = "Component initialization",
+		Run = function()
+			ComponentLoader(Core.Components)
+		end,
+	},
+
+	{
+		Text = "Misc initialization",
+		Run = function()
+			-- cmdr does garbage on require... why???????
+			-- why pain yourself like this???
+
+			-- NOTE TO FUTURE SELF: IF I EVER MAKE MY OWN CMD BAR: DO NOTHING ON REQUIRE!!!!!!!!!!!!
+			-- ITS BAD PRACTICE AND WILL ONLY CAUSE HEADACHES AND ANGER
+			local Cmdr = require(ReplicatedStorage:WaitForChild("CmdrClient"))
+
+			-- .. why is there no :SetActivationKey
+			-- why can you only set a table of keys...
+			-- why is it like this??
+			Cmdr:SetActivationKeys({ Enum.KeyCode.F2 })
+		end,
+	},
+
+	{
+		Text = "Registering tags",
+		Run = function()
+			local TagService = Knit:GetService("TagService")
+			TagService:GetTags():andThen(function(SelfTags: {})
+				local JoinedTags = ""
+				local Count = #SelfTags
+
+				if Count == 0 then
+					JoinedTags = "None"
+				end
+
+				for Index, Tag in ipairs(SelfTags) do
+					local Localized = LocalizedTags[Tag]
+					if Localized then
+						Localized = Tag
+					end
+
+					print(Index, Tag)
+
+					-- this took longer to make than the entirety of HCS
+					if Index ~= Count then
+						print(",")
+						JoinedTags = JoinedTags .. Tag .. ", "
+					elseif Index == Count then
+						print("eol")
+						JoinedTags = JoinedTags .. Tag
+					end
+				end
+
+				ChatUtil:MakeSystemMessage(string.format(YOU_HAVE_MESSAGE, JoinedTags))
+			end)
+		end,
+	},
+
+	{
+		Text = "CoreGui configuration",
+		Run = function()
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
+
+			UserInputService.MouseIconEnabled = false
+			Camera.FieldOfView = 90
+
+			Player.CameraMode = Enum.CameraMode.LockFirstPerson
+		end,
+	},
+}
+
+for _, Stage in ipairs(Stages) do
+	print("Running stage ", Stage.Text)
+
+	local Success, Error = pcall(function()
+		Stage.Run()
 	end)
-end)
 
-Camera.FieldOfView = 90
---StarterGui:SetCore("TopbarEnabled", false)
-
-UserInputService.MouseIconEnabled = false
-
--- debug purposes only !!
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
+	if Error then
+		warn("Stage", Stage.Text, "failed: ", Error)
+	end
+end

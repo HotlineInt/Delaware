@@ -1,13 +1,8 @@
 -- init.lua - contact@shiroko.me - 2022/05/31
--- ! Description: Combat Sys. VERY MESSY !!!!!!!!!!!!!!!!!!!
--- oficial name: nakosys
+-- ! Description: Combat System implementation
 
--- get camera
 local Camera = workspace.CurrentCamera
 
--- get carbon
-
-local Notification = require(script.Parent.Parent.System.Notification)
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local PhysicsService = game:GetService("PhysicsService")
@@ -27,13 +22,19 @@ local HitIndicator = require(script.HitIndicator)
 local EffectsHandler = require(script.EffectsHandler)
 
 local CrossHair = require(script.Crosshair)
-local WeaponStates = {
-	Equipping = "EQUIPPING",
-	Idle = "IDLE",
-	Firing = "FIRING",
-	Reloading = "RELOADING",
-	SPRINTING = "SPRINTING",
-}
+
+-- todo: use this someday
+-- maybe implement a state machine class?
+
+-- local WeaponStates = {
+-- 	Equipping = "EQUIPPING",
+-- 	Idle = "IDLE",
+-- 	Firing = "FIRING",
+-- 	Reloading = "RELOADING",
+-- 	SPRINTING = "SPRINTING",
+-- }
+
+local SprintingHandler = require(script.Parent.Sprinting)
 
 local CombatSys = {
 	CurrentWeapon = nil,
@@ -42,12 +43,11 @@ local CombatSys = {
 	LoadedTools = {},
 	TimeSinceLastFire = 0,
 	States = {
-		CanEquip = false,
 		ShouldUpdate = false,
 		ShouldFire = false,
-		CanFire = false,
+		WeaponReady = false,
 	},
-	State = "",
+	-- State = "", -- read line 27
 	GlobalOffset = Instance.new("Vector3Value"),
 	Janitor = nil,
 }
@@ -66,6 +66,8 @@ export type Weapon = {
 function CombatSys:Load()
 	print("Processing viewmodels")
 
+	-- Deferred because even waiting for the ViewModels folder to be replicated still results in some models
+	-- just not existing
 	task.defer(function()
 		ReplicatedStorage:WaitForChild("ViewModels")
 		for _, ViewModel in pairs(ViewModels:GetChildren()) do
@@ -101,6 +103,16 @@ function CombatSys:Load()
 		self:HandleAction(...)
 	end, false, Enum.KeyCode.R)
 
+	-- this was here to fix tools not loading on initial character spawn
+	-- but now the issue magically fixed itself
+
+	-- and this just spits out an error???
+	-- what???
+
+	-- task.defer(function()
+	-- 	self:OnCharacterAdded(Player.Character)
+	-- end)
+
 	-- Very janky automatic loop
 	-- task.spawn(function()
 	-- 	while true do
@@ -130,7 +142,9 @@ function CombatSys:ProcessVM(ViewModel: Model)
 end
 
 function CombatSys:OnCharacterAdded(Character: Model)
+	print("Character creating..")
 	self.Janitor:Cleanup()
+	DamageIndicator:Reset()
 
 	-- clear up varaibles
 	self.States.ShouldFire = false
@@ -149,6 +163,7 @@ function CombatSys:OnCharacterAdded(Character: Model)
 	local Humanoid: Humanoid = Character:WaitForChild("Humanoid")
 	LastHealth = Humanoid.MaxHealth
 
+	-- there's probably a better way to do this
 	self.Janitor:Add(Humanoid.Died:Connect(function()
 		DamageIndicator:UserDead()
 		-- Massive cleanup
@@ -160,8 +175,6 @@ function CombatSys:OnCharacterAdded(Character: Model)
 		self.States.CanEquip = false
 	end))
 
-	DamageIndicator:Reset()
-
 	self.Janitor:Add(Humanoid.HealthChanged:Connect(function(Health: number)
 		if Health < LastHealth then
 			DamageIndicator:OnDamage()
@@ -170,6 +183,7 @@ function CombatSys:OnCharacterAdded(Character: Model)
 		LastHealth = Health
 	end))
 
+	-- there's probably a better way to do this..
 	for _, Tool in pairs(Backpack:GetChildren()) do
 		self:_CreateTool(Tool)
 	end
@@ -197,11 +211,9 @@ function CombatSys:_CreateTool(Tool: Tool)
 		return
 	end
 
-	-- call AddWeapon()
 	local Class = self:AddWeapon(Tool)
 
 	Tool.Equipped:Connect(function()
-		print("quite the goof")
 		self:EquipWeapon(Class)
 	end)
 
@@ -218,7 +230,6 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 
 	print(ActionName, InputState)
 	if ActionName == "Update" and InputState == Enum.UserInputState.End then
-		print("bruh")
 		self.States.ShouldUpdate = not self.States.ShouldUpdate
 	end
 
@@ -226,9 +237,10 @@ function CombatSys:HandleAction(ActionName: string, InputState, InputObject: Inp
 		self:ReloadWeapon()
 	end
 
-	if ActionName == "ADS" then
-		self:ToggleADS()
-	end
+	-- disabled until i figure out how to do offsets right in this
+	-- if ActionName == "ADS" then
+	-- 	self:ToggleADS()
+	-- end
 
 	if ActionName == "Mouse" and InputState == Enum.UserInputState.Begin then
 		if Weapon.FireMode == "Automatic" then
@@ -247,6 +259,8 @@ end
 
 function CombatSys:AddWeapon(Tool: Tool): Weapon
 	print("Creating", Tool)
+
+	-- endarged species
 	if not Tool:FindFirstChild("Animations") or not Tool:FindFirstChild("Sounds") then
 		error("Tool is missing critical stuff. Will not load.")
 	end
@@ -309,8 +323,26 @@ function CombatSys:GetState()
 	return self.CurrentWeapon.Tool:GetAttribute("State")
 end
 
-function CombatSys:SetCanFire(Toggle: boolean)
-	self.States.CanFire = Toggle
+function CombatSys:SetWeaponReady(Toggle: boolean)
+	self.States.WeaponReady = Toggle
+end
+
+-- playanimation/stopanimation wrappers
+-- because im too lazy
+function CombatSys:PlayAnimation(AnimationName: string, Loop: boolean, ClientOnly: boolean, CheckIfRunning: boolean)
+	if self.CurrentWeapon == nil then
+		return
+	end
+
+	self.CurrentWeapon:PlayAnimation(AnimationName, Loop, ClientOnly, CheckIfRunning)
+end
+
+function CombatSys:StopAnimation(AnimationName: string, Loop: boolean, ClientOnly: boolean, CheckIfRunning: boolean)
+	if self.CurrentWeapon == nil then
+		return
+	end
+
+	self.CurrentWeapon:StopAnimation(AnimationName, Loop, ClientOnly, CheckIfRunning)
 end
 
 function CombatSys:SetStat(StatName: string, Value: any): nil
@@ -323,7 +355,7 @@ function CombatSys:SetStat(StatName: string, Value: any): nil
 end
 
 function CombatSys:FireWeapon()
-	if not self.States.CanFire then
+	if not self.States.WeaponReady then
 		warn("Firing is unavailable.")
 		return
 	end
@@ -355,6 +387,8 @@ function CombatSys:FireWeapon()
 		end
 	end
 
+	SprintingHandler:ToggleSprint(false)
+
 	if CurrentWeapon.CanRecoil then
 		CurrentWeapon.Springs.Recoil:Shove(CurrentWeapon.RecoilConfig)
 	end
@@ -371,7 +405,7 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 	self.Crosshair:SetProperty("Enabled", true)
 	self.States.ShouldFire = false
 	self.States.ShouldUpdate = false
-	self:SetCanFire(false)
+	self:SetWeaponReady(false)
 	-- Define variables based on the type
 
 	-- Check if given weapon is not self.CurrentWeapon
@@ -393,7 +427,7 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 	self.CurrentWeapon = Weapon
 
 	Weapon:Equip()
-	self:SetCanFire(true)
+	self:SetWeaponReady(true)
 end
 
 function CombatSys:ReloadWeapon()
@@ -415,11 +449,11 @@ function CombatSys:ReloadWeapon()
 
 	self.States.ShouldFire = false
 	HUD:SetStats("--", "--")
-	self:SetCanFire(false)
+	self:SetWeaponReady(false)
 	CurrentWeapon:Reload()
 	local NewAmmo = CurrentWeapon:GetStat("Ammo")
 	HUD:SetStats(NewAmmo, CurrentWeapon.MaxAmmo)
-	self:SetCanFire(true)
+	self:SetWeaponReady(true)
 	NewAmmo = nil
 end
 
@@ -435,7 +469,7 @@ function CombatSys:DequipWeapon()
 	end
 
 	self.Crosshair:SetProperty("Enabled", false)
-	self:SetCanFire(false)
+	self:SetWeaponReady(false)
 
 	self.States.ShouldFire = false
 	self.States.ShouldUpdate = false
@@ -470,6 +504,12 @@ function CombatSys:Update(DeltaTime: number)
 
 		ViewModel:PivotTo(Camera.CFrame * CFrame.new(self.GlobalOffset.Value) * CFrame.new(Vector3.new(0, ViewBob, 0)))
 		ViewModel:SetPrimaryPartCFrame(ViewModel.PrimaryPart.CFrame * CFrame.Angles(0, -Sway.x, Sway.y))
+	end
+
+	if SprintingHandler.IsSprinting then
+		self:PlayAnimation("Sprinting", true, true, true)
+	else
+		self:StopAnimation("Sprinting", false, true)
 	end
 
 	if self.States.ShouldFire then

@@ -5,18 +5,27 @@ local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
 local GetToolsEvent = Events["dbg_get_tools"]
 local GiveToolEvent = Events["dbg_give_tool"]
 
+local TextPrompt = require(script.Parent.Parent.Parent.Components.TextPrompt)
+
 local function ToolComponent(Tool: Tool)
 	return CUI:CreateElement("TextButton", {
 		Size = UDim2.new(0, 60, 0, 60),
 		BackgroundColor3 = Color3.new(),
 		BackgroundTransparency = 0.5,
 		Text = Tool.Name,
+		BorderSizePixel = 0,
 		Font = Enum.Font.SourceSans,
 		TextSize = 18,
 		TextWrapped = true,
 		TextColor3 = Color3.new(1, 1, 1),
-		[CUI.OnEvent("Activated")] = function()
-			GiveToolEvent:FireServer(Tool.Name)
+		[CUI.OnEvent("Activated")] = function(self)
+			self.Parent.Parent.Parent.Parent:Add(TextPrompt({
+				Prompt = "Are you sure?",
+				Callback = function()
+					GetToolsEvent:FireServer(Tool.Name)
+				end,
+			}))
+			--GiveToolEvent:FireServer(Tool.Name)
 		end,
 	})
 end
