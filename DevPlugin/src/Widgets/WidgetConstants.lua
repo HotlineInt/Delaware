@@ -1,0 +1,8 @@
+return {
+	Colors = {
+		STUDIO_BACKGROUND_DARK = Color3.fromRGB(46, 46, 46),
+		STUDIO_BACKGROUND_DARK_DARKER = Color3.fromRGB(46 - 10, 46 - 10, 46 - 10),
+		STUDIO_SELECTION_COLOR_BLUE = Color3.fromRGB(11, 90, 175),
+		STUDIO_SELECTION_COLOR = Color3.fromRGB(66, 66, 66),
+	},
+}
