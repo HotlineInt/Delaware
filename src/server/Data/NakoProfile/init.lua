@@ -4,6 +4,12 @@ local NakoProfile = {
 			Cash = 0,
 			Bank = 300,
 			Tags = {},
+			BanData = {
+				Banned = false,
+				Time = 0,
+				Reason = "",
+				Perm = false,
+			},
 		},
 	},
 	Stores = {},
