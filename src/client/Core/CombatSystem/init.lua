@@ -1,8 +1,9 @@
 -- init.lua - contact@shiroko.me - 2022/05/31
--- ! Description: Combat System implementation
+-- ! Description: Combat System implementatio
 
 local Camera = workspace.CurrentCamera
 
+local Notification = require(script.Parent.Parent.System.Notification)
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local PhysicsService = game:GetService("PhysicsService")
