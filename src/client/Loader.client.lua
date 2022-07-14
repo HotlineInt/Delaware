@@ -57,6 +57,7 @@ local Stages = {
 			Carbon:RegisterModule(System.Debug.PerformanceStats)
 
 			Carbon:RegisterModule(Core.F4Menu)
+			--Carbon:RegisterModule(Core.MainMenu.MainMenu)
 			Carbon:RegisterModule(Core.Sprinting)
 		end,
 	},
@@ -107,6 +108,7 @@ local Stages = {
 			-- why can you only set a table of keys...
 			-- why is it like this??
 			Cmdr:SetActivationKeys({ Enum.KeyCode.F2 })
+			Cmdr:SetPlaceName("Delaware@" .. workspace:GetAttribute("GameVersion"))
 		end,
 	},
 

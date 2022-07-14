@@ -31,7 +31,9 @@ warn("Loaded %d services", TotalServices)
 
 Knit:Start({ ServicePromises = false })
 local Cmdr = require(ReplicatedStorage.Cmdr)
-Cmdr:RegisterHooksIn(script.Parent.CmdrHook)
+Cmdr:RegisterHooksIn(script.Parent.Cmdr.Hooks)
+Cmdr:RegisterTypesIn(script.Parent.Cmdr.Types)
+Cmdr:RegisterCommandsIn(script.Parent.Cmdr.Commands)
 Cmdr:RegisterDefaultCommands()
 
 ComponentLoader(script.Parent.Components)
