@@ -20,6 +20,14 @@
       "$ignoreUnknownInstances": true,
       "$className": "ServerScriptService",
       "$path": "src/server"
+    },
+    "ServerStorage": {
+      "DevPlugin": {
+        "$path": "DevPlugin"
+      },
+      "dev_stories": {
+        "$path": "src/Stories"
+      }
     }
   }
 }
