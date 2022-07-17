@@ -15,6 +15,8 @@ local F4Menu = {}
 local PageSelectorButton = require(script.Components.PageSelectorButton)
 local UserComponent = require(script.Components.User)
 
+local Views = script:WaitForChild("Pages")
+
 function F4Menu:Load()
 	local Menu = CUI:CreateElement("ScreenGui", {
 		Enabled = false,
@@ -87,7 +89,22 @@ function F4Menu:Load()
 	local Viewer = Container:Get("Viewer")
 	local PageSelector = Menu:Get("PageSelector")
 
-	self.Router = Router.new(Viewer, Router:GenerateRoutesFromFolder(script.Pages))
+	self.Router = Router.new(Viewer, {
+		["/home"] = {
+			Title = "Home",
+			View = require(Views.Home),
+		},
+
+		["/about"] = {
+			Title = "About",
+			View = require(Views.About),
+		},
+
+		["/debug"] = {
+			Title = "Debug",
+			View = require(Views.Debug),
+		},
+	})
 	self.Router:GoTo("/home")
 
 	local SelectedState = State.new("/home")
