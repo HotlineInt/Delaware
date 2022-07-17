@@ -11,8 +11,21 @@ return function(Props: {})
 		TextSize = 18,
 		Font = Enum.Font.SourceSans,
 		BorderSizePixel = 0,
-		TextColor3 = Color3.new(1, 1, 1),
-		BackgroundColor3 = Color3.new(0.2, 0.2, 0.2),
+		TextColor3 = Props.SelectedState:Listen(function(self, Value)
+			print("Hi")
+			if Value == Route then
+				return Color3.new(0, 0, 0)
+			else
+				return Color3.new(1, 1, 1)
+			end
+		end),
+		BackgroundColor3 = Props.SelectedState:Listen(function(self, Value)
+			if Value == Route then
+				return Color3.new(1, 1, 1)
+			else
+				return Color3.new(0.2, 0.2, 0.2)
+			end
+		end),
 		Text = Name,
 		Name = Name,
 		[CUI.OnEvent("Activated")] = function()

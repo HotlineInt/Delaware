@@ -1,6 +1,7 @@
 local UserInputService = game:GetService("UserInputService")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local CUI = require(Carbon.UI.CUI)
+local State = require(Carbon.UI.CUI.State)
 local Knit = require(Carbon.Framework.Knit)
 
 local TagService = Knit:GetService("TagService")
@@ -89,10 +90,18 @@ function F4Menu:Load()
 	self.Router = Router.new(Viewer, Router:GenerateRoutesFromFolder(script.Pages))
 	self.Router:GoTo("/home")
 
+	local SelectedState = State.new("/home")
+
+	self.Router.OnRoute:Connect(function(Route)
+		print(Route)
+		SelectedState:Set(Route)
+	end)
+
 	for Route, RouteInfo in pairs(self.Router:GetRoutes()) do
 		PageSelector:Add(PageSelectorButton({
 			Route = Route,
 			Router = self.Router,
+			SelectedState = SelectedState,
 			Name = RouteInfo.Title,
 		}))
 	end
