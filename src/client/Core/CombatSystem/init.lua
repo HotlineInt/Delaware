@@ -298,10 +298,10 @@ function CombatSys:AddWeapon(Tool: Tool): Weapon
 	self.LoadedWeapons[Tool.Name] = Weapon
 
 	-- ammo attribute property changd signal
-	Weapon.Connections["AmmoChange"] = Tool:GetAttributeChangedSignal("Ammo"):Connect(function()
+	self.Janitor:Add(Tool:GetAttributeChangedSignal("Ammo"):Connect(function()
 		local NewAmmo = Tool:GetAttribute("Ammo")
 		Hud:SetStats(NewAmmo, Weapon.MaxAmmo)
-	end)
+	end))
 
 	return Weapon
 end
