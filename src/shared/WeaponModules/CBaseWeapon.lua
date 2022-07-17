@@ -176,6 +176,14 @@ function CBaseWeapon:PlayAnimation(AnimationName: string, Loop: boolean, ClientO
 	end
 end
 
+-- anim randomization
+function CBaseWeapon:GetRandomAnim(BaseAnimName: string)
+	local RandomFireAnim = math.random(1, 2)
+	local FireAnimName = BaseAnimName .. tostring(RandomFireAnim)
+
+	return FireAnimName
+end
+
 -- stop anim
 function CBaseWeapon:StopAnimation(AnimationName: string, Loop: boolean, ClientOnly: boolean)
 	local Animation = self.Animations[AnimationName]
@@ -250,10 +258,9 @@ function CBaseWeapon:Fire()
 
 	if self.Ammo >= 0 then
 		self.Firing = false
-		self:PlayAnimation("Fire")
+		self:PlayAnimation(self:GetRandomAnim("Fire"))
 		self:PlaySound("Shoot")
 		task.spawn(function()
-			print("Is this even running?")
 			WeaponsService:FireWeapon(self.Tool, Mouse.Hit.Position)
 			self.Ammo = self:GetStat("Ammo")
 		end)
@@ -270,7 +277,6 @@ function CBaseWeapon:Reload()
 		self:PlayAnimation("Reload")
 		self:PlaySound("Reload")
 		WeaponsService:Reload(self.Tool):await()
-		print("contain me	")
 		self.Reloading = false
 	end
 end
