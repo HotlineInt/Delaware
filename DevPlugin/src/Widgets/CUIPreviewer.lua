@@ -67,7 +67,14 @@ function CUIPreviewer:on_selection_change(Selection: ModuleScript | Instance)
 
 	if not Selection then
 		self:set_title(TitleFormats.NothingSelected)
+		if self.LastStoryFile then
+			self.LastStoryFile:Destroy()
+		end
 		return
+	end
+
+	if self.LastStoryFile then
+		self.LastStoryFile:Destroy()
 	end
 
 	local IsStory, ReasonWhyNot = self:is_story(Selection)
@@ -77,6 +84,7 @@ function CUIPreviewer:on_selection_change(Selection: ModuleScript | Instance)
 		warn("Not a story file:", ReasonWhyNot)
 		return
 	end
+	self.Janitor:Cleanup()
 
 	if self.CleanupFunc then
 		local _, error = pcall(self.CleanupFunc)
@@ -85,12 +93,6 @@ function CUIPreviewer:on_selection_change(Selection: ModuleScript | Instance)
 			warn("Error while executing cleanup:", error)
 		end
 	end
-
-	if self.LastStoryFile then
-		self.LastStoryFile:Destroy()
-	end
-
-	self.Janitor:Cleanup()
 
 	local Container = self.Gui:Get("Container")
 	Container.Instance:ClearAllChildren()
@@ -103,9 +105,9 @@ function CUIPreviewer:on_selection_change(Selection: ModuleScript | Instance)
 
 	self:set_title(string.format(TitleFormats.Previewing, Selection.Name))
 
-	Selection:GetPropertyChangedSignal("Source"):Connect(function()
+	self.Janitor:Add(Selection:GetPropertyChangedSignal("Source"):Connect(function()
 		self:on_selection_change(Selection)
-	end)
+	end))
 
 	self:preview_file(StoryFile, Container.Instance)
 end
