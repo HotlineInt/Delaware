@@ -69,6 +69,8 @@ function WeaponService:KnitStart()
 
 				-- Creating the holster attachment here, because Roblox
 				-- does not support keeping Attachments anywhere outside a BasePart
+
+				-- ^ still dumb btw
 				local Attachment = Create("Attachment", {
 					Name = "HolsterAttachment",
 					Orientation = Vector3.new(-45, 90, 0),
@@ -171,6 +173,11 @@ function WeaponService:Verify(Host: Player, Weapon: Tool, AmmoCheck: boolean)
 	-- one cant fire without even having the gun itself.
 	if Character:FindFirstChild(Weapon.Name) == nil then
 		warn("Failed check: Weapon Does Not Exist", Host)
+		return false
+	end
+
+	if Weapon.Parent ~= Character then
+		warn("Failed check: User doesn't have the weapon in their hand.", Host)
 		return false
 	end
 
