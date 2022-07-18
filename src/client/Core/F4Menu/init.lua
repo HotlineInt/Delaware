@@ -30,7 +30,8 @@ function F4Menu:Load()
 				BackgroundColor3 = Color3.new(),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.new(0.5, 0, 0.5, 0),
-				Size = UDim2.new(0, 400, 0, 250),
+				--Size = UDim2.new(0, 400, 0, 250),
+				Size = UDim2.new(0.5, 0, 0.5, 0),
 				BorderSizePixel = 0,
 				[CUI.Children] = {
 					--	TitleLabel({ Title = "Home" }),
@@ -41,6 +42,9 @@ function F4Menu:Load()
 						BorderSizePixel = 0,
 						Position = UDim2.new(1, 0, 1, 0),
 						Size = UDim2.new(0.75, 0, 1, 1),
+					}),
+					CUI:CreateElement("UIAspectRatioConstraint", {
+						AspectRatio = 1.7,
 					}),
 					CUI:CreateElement("Frame", {
 						AnchorPoint = Vector2.new(0, 1),
@@ -61,6 +65,8 @@ function F4Menu:Load()
 			}),
 		},
 	})
+
+	CUI:MarkAsScalable(Menu)
 
 	task.spawn(function()
 		local UserCard = Menu:Get("Container"):Get("PageSelector"):Get("User")
