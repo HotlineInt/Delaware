@@ -13,7 +13,7 @@ local Force = 1
 -- Props: None
 -- Returns: Element LoadingIndicator, CUIState LoadingState
 return function(Props: {})
-	local LoadingState = State.new()
+	local LoadingState = State.new(false)
 
 	local Indicator = CUI:CreateElement("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
