@@ -8,6 +8,9 @@ local ComponentLoader = require(ReplicatedStorage:WaitForChild("ComponentLoader"
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local ChatUtil = require(Carbon.Util.Chat)
 
+local State = require(Carbon.UI.CUI.State)
+local CUI = require(Carbon.UI.CUI)
+
 local Player = game:GetService("Players").LocalPlayer
 local Knit = require(Carbon.Framework.Knit)
 
@@ -20,6 +23,11 @@ local LocalizedTags = {
 local YOU_HAVE_MESSAGE = "DEBUG MESSAGE: You have the following tags: %s"
 local Core = script.Parent:WaitForChild("Core")
 local System = script.Parent:WaitForChild("System")
+
+local LoaderUI = require(script.Parent.LoaderUI)
+local LoaderTree =
+	CUI:CreateElement("ScreenGui", { DisplayOrder = 999999, IgnoreGuiInset = true, ResetOnSpawn = false })
+LoaderTree:Mount(Player:WaitForChild("PlayerGui"))
 
 function ConvertToHMS(Time: number)
 	local function Format(Int)
@@ -36,6 +44,12 @@ function ConvertToHMS(Time: number)
 end
 
 local Stages = {
+	{
+		Text = "Disabling Core",
+		Run = function()
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+		end,
+	},
 	{
 		Text = "Awaiting server initialization",
 		Run = function()
@@ -160,10 +174,23 @@ local Stages = {
 			Player.CameraMode = Enum.CameraMode.LockFirstPerson
 		end,
 	},
+	{
+		Text = "Ready to go",
+		Run = function()
+			task.wait(0.6)
+		end,
+	},
 }
+
+local StageState = State.new("Stage Initialization")
+local Loader = LoaderUI({ StageState = StageState })
+LoaderTree:Add(Loader)
 
 for _, Stage in ipairs(Stages) do
 	print("Running stage ", Stage.Text)
+	task.delay(0.1, function()
+		StageState:Set(Stage.Text)
+	end)
 
 	local Success, Error = pcall(function()
 		Stage.Run()
@@ -173,3 +200,5 @@ for _, Stage in ipairs(Stages) do
 		warn("Stage", Stage.Text, "failed: ", Error)
 	end
 end
+
+LoaderTree:Destroy()
