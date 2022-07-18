@@ -19,13 +19,7 @@ local function ToolComponent(Tool: Tool)
 		TextWrapped = true,
 		TextColor3 = Color3.new(1, 1, 1),
 		[CUI.OnEvent("Activated")] = function(self)
-			self.Parent.Parent.Parent.Parent:Add(TextPrompt({
-				Prompt = "Are you sure?",
-				Callback = function()
-					GetToolsEvent:FireServer(Tool.Name)
-				end,
-			}))
-			--GiveToolEvent:FireServer(Tool.Name)
+			GiveToolEvent:FireServer(Tool.Name)
 		end,
 	})
 end
