@@ -9,6 +9,9 @@ local Page = require(script.Parent.Parent.Components.Page)
 local CategoryText = require(script.Parent.Parent.Components.CategoryText)
 
 local MenuButton = require(script.Parent.Parent.Components.MenuButton)
+local MessageBox = require(script.Parent.Parent.Parent.Parent.System.MessageBox)
+
+local LoadingIndicator = require(script.Parent.Parent.Parent.Parent.Components.SpinLoadIndicator)
 
 local Sections = {
 	Tools = require(script.ToolSection),
@@ -39,6 +42,44 @@ return function(Props: {})
 					Text = "Transfer to bank",
 					Callback = function()
 						EconomyService:TransferToBank(100)
+					end,
+				}),
+				MenuButton({
+					Text = "Prompt Message",
+					Callback = function(self)
+						self.Parent.Parent.Parent:Add(MessageBox({
+							Prompt = "FuckYou",
+							Yeah = true,
+						}))
+					end,
+				}),
+				MenuButton({
+					Text = "FullScreen MessageBox",
+					Callback = function(self)
+						MessageBox({
+							Prompt = "FuckYou",
+							Yeah = true,
+						}):Mount(Carbon:GetPlayer().PlayerGui.TestContainer)
+					end,
+				}),
+				MenuButton({
+					Text = "Make stuff 2x larger",
+					Callback = function(self)
+						CUI:SetGlobalScale(2)
+					end,
+				}),
+				MenuButton({
+					Text = "Loading Indicator",
+					Callback = function(self)
+						local Indicator, State = LoadingIndicator()
+						self.Parent.Parent.Parent:Add(Indicator)
+
+						State:Set(true)
+
+						task.delay(5, function()
+							State:Set(false)
+							Indicator:Destroy()
+						end)
 					end,
 				}),
 				MenuButton({
