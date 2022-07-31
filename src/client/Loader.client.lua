@@ -20,6 +20,9 @@ local LocalizedTags = {
 	["tag_mod"] = "Moderator",
 }
 
+local TableCoreSet = require(script.Parent.TableCoreSet)
+local CoreConstants = require(ReplicatedStorage:WaitForChild("CoreConstants"))
+
 local YOU_HAVE_MESSAGE = "DEBUG MESSAGE: You have the following tags: %s"
 local Core = script.Parent:WaitForChild("Core")
 local System = script.Parent:WaitForChild("System")
@@ -47,7 +50,7 @@ local Stages = {
 	{
 		Text = "Disabling Core",
 		Run = function()
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+			TableCoreSet(CoreConstants.CoreGui.MainMenu)
 		end,
 	},
 	{
@@ -59,20 +62,26 @@ local Stages = {
 	{
 		Text = "Registering modules",
 		Run = function(Label)
+			--	Carbon:RegisterModule(Core.MainMenu)
 			Carbon:RegisterModule(System.Notification)
 			Carbon:RegisterModule(Core.CombatSystem)
 			--	Carbon:RegisterModule(Core.Console)
 			Carbon:RegisterModule(Core.Footsteps)
+			Carbon:RegisterModule(Core.Watch)
 
 			Carbon:RegisterModule(Core.Settings.SettingsWidget)
 
 			Carbon:RegisterModule(System.Overlays)
+			Carbon:RegisterModule(System.MouseBehaviour)
 			--Carbon:RegisterModule(System.Debug.EconomyTest)
 			Carbon:RegisterModule(System.Debug.PerformanceStats)
 
 			Carbon:RegisterModule(Core.F4Menu)
-			--Carbon:RegisterModule(Core.MainMenu.MainMenu)
+			--Carbon:RegisterModule(Core.HUD)
+
 			Carbon:RegisterModule(Core.Sprinting)
+
+			Carbon:RegisterModule(script.Parent:WaitForChild("UserState"):WaitForChild("StateController"))
 		end,
 	},
 	{
@@ -116,12 +125,12 @@ local Stages = {
 
 			-- NOTE TO FUTURE SELF: IF I EVER MAKE MY OWN CMD BAR: DO NOTHING ON REQUIRE!!!!!!!!!!!!
 			-- ITS BAD PRACTICE AND WILL ONLY CAUSE HEADACHES AND ANGER
-			local Cmdr = require(ReplicatedStorage:WaitForChild("CmdrClient"))
+			local Cmdr = require(ReplicatedStorage:WaitForChild("CmdrClient"), 2)
 
 			-- .. why is there no :SetActivationKey
 			-- why can you only set a table of keys...
 			-- why is it like this??
-			Cmdr:SetActivationKeys({ Enum.KeyCode.F2 })
+			Cmdr:SetActivationKeys({ Enum.KeyCode.F3 })
 			Cmdr:SetPlaceName("Delaware@" .. workspace:GetAttribute("GameVersion"))
 		end,
 	},
@@ -164,9 +173,9 @@ local Stages = {
 	{
 		Text = "CoreGui configuration",
 		Run = function()
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
+			if not Carbon.Modules["MainMenu"] then
+				TableCoreSet(CoreConstants.CoreGui.Default)
+			end
 
 			UserInputService.MouseIconEnabled = false
 			Camera.FieldOfView = 90
@@ -188,9 +197,12 @@ LoaderTree:Add(Loader)
 
 for _, Stage in ipairs(Stages) do
 	print("Running stage ", Stage.Text)
-	task.delay(0.1, function()
-		StageState:Set(Stage.Text)
-	end)
+
+	if Carbon:IsStudio() == false then
+		task.delay(0.1, function()
+			StageState:Set(Stage.Text)
+		end)
+	end
 
 	local Success, Error = pcall(function()
 		Stage.Run()
