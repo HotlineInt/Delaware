@@ -11,6 +11,8 @@ local SettingsWidget = {}
 local Setting = require(script.Setting)
 local TitleLabel = require(script.Parent.Parent.Parent.TitleLabel)
 
+local MouseBehaviour = require(script.Parent.Parent.Parent.System.MouseBehaviour)
+
 function SettingsWidget:Load()
 	self.Widget = CUI:CreateElement("ScreenGui", {
 		Enabled = false,
@@ -53,7 +55,7 @@ function SettingsWidget:Load()
 	UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
 		if input.KeyCode == Enum.KeyCode.Tab then
 			local Enabled = not self.Widget:GetProperty("Enabled")
-			UserInputService.MouseIconEnabled = Enabled
+			-- UserInputService.MouseIconEnabled = Enabled
 			self:SetEnabled(Enabled)
 		end
 	end)
@@ -80,6 +82,9 @@ end
 function SettingsWidget:SetEnabled(Enabled: boolean)
 	if Enabled then
 		self:LoadSettings()
+		MouseBehaviour:AddMenu("MENU_SETTINGS")
+	else
+		MouseBehaviour:RemoveMenu("MENU_SETTINGS")
 	end
 
 	self.Widget:SetProperty("Enabled", Enabled)
