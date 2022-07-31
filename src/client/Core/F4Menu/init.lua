@@ -1,40 +1,77 @@
 local UserInputService = game:GetService("UserInputService")
 local Carbon = require(game:GetService("ReplicatedStorage"):WaitForChild("Carbon"))
 local CUI = require(Carbon.UI.CUI)
-local State = require(Carbon.UI.CUI.State)
+local Observable = require(Carbon.UI.CUI.Observable)
 local Knit = require(Carbon.Framework.Knit)
 
 local TagService = Knit:GetService("TagService")
 
 local Router = require(Carbon.UI.CUIRouter)
-local ModalBox = require(script.Parent.Parent.ModalBox)
-
 local Player = Carbon:GetPlayer()
 local F4Menu = {}
 
 local PageSelectorButton = require(script.Components.PageSelectorButton)
 local UserComponent = require(script.Components.User)
 
+local MouseBehaviour = require(script.Parent.Parent.System.MouseBehaviour)
 local Views = script:WaitForChild("Pages")
+
+local UserState = require(script.Parent.Parent.UserState)
+local UserStateEnum = require(script.Parent.Parent.UserState.StateEnum)
+
+local POSITIONS = {
+	OPEN = UDim2.new(0.5, 0, 0.5, 0),
+	CLOSED = UDim2.new(0.5, 0, 1, 0),
+}
+
+local TRANSPARENCY = {
+	OPEN = 0,
+	CLOSED = 1,
+}
 
 function F4Menu:Load()
 	local Menu = CUI:CreateElement("ScreenGui", {
-		Enabled = false,
 		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Name = "Panel",
+		[CUI.Custom("Reset")] = function(self)
+			local self = self:Get("Container")
+			-- Cancel any springs we may have, just so the values properly
+			self:CancelSpring()
+			self:SetProperty("Position", POSITIONS.CLOSED)
+			self:SetProperty("GroupTransparency", TRANSPARENCY.CLOSED)
+		end,
+
+		[CUI.Custom("Open")] = function(self)
+			self:Reset()
+			local self = self:Get("Container")
+			self:AnimateSpring(0.75, 1.8, { GroupTransparency = TRANSPARENCY.OPEN })
+			self:AnimateSpring(0.8, 2.75, { Position = POSITIONS.OPEN })
+		end,
+
+		[CUI.Custom("Close")] = function(self)
+			local self = self:Get("Container")
+			self:AnimateSpring(0.8, 4.9, { GroupTransparency = TRANSPARENCY.CLOSED })
+			self:AnimateSpring(0.8, 2.75, { Position = POSITIONS.CLOSED })
+		end,
+
 		[CUI.Children] = {
-			ModalBox(),
-			CUI:CreateElement("Frame", {
+			-- ModalBox(),
+			CUI:CreateElement("CanvasGroup", {
+				-- mark it as scaleable (screenguis wont do)
+				[CUI.Scaleable] = true,
 				ClipsDescendants = true,
 				Name = "Container",
 				BackgroundColor3 = Color3.new(),
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.new(0.5, 0, 0.5, 0),
-				--Size = UDim2.new(0, 400, 0, 250),
-				Size = UDim2.new(0.5, 0, 0.5, 0),
+				Position = POSITIONS.CLOSED,
+				-- Position = UDim2.new(0.5, 0, 0.5, 0),
+				GroupTransparency = TRANSPARENCY.CLOSED,
+				Size = UDim2.new(0, 400, 0, 250),
+				--Size = UDim2.new(0.35, 0, 0.35, 0),
 				BorderSizePixel = 0,
+
 				[CUI.Children] = {
-					--	TitleLabel({ Title = "Home" }),
 					CUI:CreateElement("Frame", {
 						Name = "Viewer",
 						BackgroundTransparency = 1,
@@ -44,7 +81,7 @@ function F4Menu:Load()
 						Size = UDim2.new(0.75, 0, 1, 1),
 					}),
 					CUI:CreateElement("UIAspectRatioConstraint", {
-						AspectRatio = 1.7,
+						AspectRatio = 1.8,
 					}),
 					CUI:CreateElement("Frame", {
 						AnchorPoint = Vector2.new(0, 1),
@@ -65,8 +102,13 @@ function F4Menu:Load()
 			}),
 		},
 	})
+	local MenuOpen = false
 
-	CUI:MarkAsScalable(Menu)
+	self.Menu = Menu
+
+	-- ! do not enable!
+	-- ! CUI scaling on ScreenGuis is very buggy!!
+	-- CUI:MarkAsScalable(Menu)
 
 	task.spawn(function()
 		local UserCard = Menu:Get("Container"):Get("PageSelector"):Get("User")
@@ -113,7 +155,7 @@ function F4Menu:Load()
 	})
 	self.Router:GoTo("/home")
 
-	local SelectedState = State.new("/home")
+	local SelectedState = Observable.new("/home")
 
 	self.Router.OnRoute:Connect(function(Route)
 		print(Route)
@@ -135,8 +177,17 @@ function F4Menu:Load()
 		end
 
 		if input.KeyCode == Enum.KeyCode.F4 then
-			Menu:SetProperty("Enabled", not Menu:GetProperty("Enabled"))
-			UserInputService.MouseIconEnabled = Menu:GetProperty("Enabled")
+			if MenuOpen then
+				MouseBehaviour:RemoveMenu("MENU_F4")
+				UserState:Set(UserStateEnum.NORMAL)
+				Menu:Close()
+			else
+				MouseBehaviour:AddMenu("MENU_F4")
+				UserState:Set(UserStateEnum.IN_F4_MENU)
+				Menu:Open()
+			end
+
+			MenuOpen = not MenuOpen
 
 			-- Assed fix to make it render properly
 			PageSelector:Get("User"):Get("UserAndRank"):SetProperty("RichText", true)
