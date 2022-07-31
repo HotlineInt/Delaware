@@ -14,7 +14,9 @@ local SoundUtil = require(script.Parent.Util.Sound)
 
 local WeaponSpring = require(Carbon.Util.WeaponSpring)
 
+local ViewModelClass = require(Carbon.Tier0.ViewModel)
 local CHandsModel = ViewModelFolder:WaitForChild("CHands")
+
 export type Weapon = {
 	Name: string,
 	FireMode: string,
@@ -25,6 +27,7 @@ export type Weapon = {
 	Tool: Tool,
 }
 
+local CBaseHands = require(script.Parent.Parent.ViewModels.CHandsBase)
 local CBaseWeapon = Class("CBaseWeapon")
 
 local ValidSounds = {
@@ -73,46 +76,47 @@ function CBaseWeapon:__init(Tool: Tool): Weapon
 		end
 	end
 	local ViewModel
+
 	if not UseHands then
 		ViewModel = ViewModelFolder:WaitForChild(ViewModelName, 4)
 		assert(ViewModel, string.format("Invalid ViewModel provided for %s", Tool.Name))
-
-		ViewModel = ViewModel:Clone()
-		self.ViewModel = ViewModel
+		local selfView = ViewModelClass.new(ViewModel)
+		self.ViewModel = selfView
 	else
 		local WeaponModel = ViewModelFolder.Weapons:FindFirstChild(WeaponModelName)
 		assert(WeaponModel, "Invalid WeaponModel provided for " .. Tool.Name .. '"' .. WeaponModelName .. '"')
-		ViewModel = CHandsModel:Clone()
-		WeaponModel = WeaponModel:Clone()
 
-		WeaponModel.Parent = ViewModel
-		local ModelConnector = Instance.new("Motor6D")
-		ModelConnector.Name = "ModelConnector"
-		ModelConnector.Parent = ViewModel
-		ModelConnector.Part0 = ViewModel.RightHand
-		ModelConnector.Part1 = WeaponModel.PrimaryPart
+		local ViewModel = CBaseHands.new()
+		WeaponModel = WeaponModel:Clone()
+		ViewModel:AttachWeapon(WeaponModel, ViewModel:GetAttachPoint("RightHand"))
 
 		self.ViewModel = ViewModel
 	end
+	ViewModel = self.ViewModel
 
-	local Animator
-	local Humanoid = ViewModel:FindFirstChild("Humanoid")
-	if Humanoid then
-		Animator = Humanoid:FindFirstChildOfClass("Animator")
-	else
-		Animator = ViewModel:FindFirstChildOfClass("AnimationController")
-	end
+	local Animator = ViewModel:GetAnimator()
 
-	ViewModel.Parent = ReplicatedStorage
+	-- if ViewModel.ClassName == "ViewModel" then
+	-- 	Animator = ViewModel:GetAnimator()
+	-- else
+	-- Legacy garbage
+
+	-- local Humanoid = ViewModel:FindFirstChild("Humanoid")
+
+	-- if Humanoid then
+	-- 	Animator = Humanoid:FindFirstChildOfClass("Animator")
+	-- else
+	-- 	Animator = ViewModel:FindFirstChildOfClass("AnimationController")
+	-- end
+	-- end
+	print("Animator exists:", Animator ~= nil)
+
 	if Animator then
 		for _, Animation: Animation in pairs(Animations:GetChildren()) do
-			local Track: AnimationTrack = Animator:LoadAnimation(Animation)
-
-			self.Animations[Animation.Name] = {
-				Running = false,
-				Track = Track,
-			}
+			ViewModel:LoadAnimation(Animation)
 		end
+
+		self.Animations = ViewModel.Animations
 	else
 		warn("Animator is missing for ViewModel", ViewModel, "Your animations will not work!")
 	end
@@ -143,36 +147,22 @@ end
 
 -- stop all animations
 function CBaseWeapon:StopAnimations()
-	for _, Animation in pairs(self.Animations) do
-		Animation.Running = false
-		Animation.Track:Stop()
-	end
+	self.ViewModel:StopAllAnimations()
 end
 
 -- play/stop method
 function CBaseWeapon:PlayAnimation(AnimationName: string, Loop: boolean, ClientOnly: boolean, CheckIfRunning: boolean)
-	local Animation: { Playing: boolean, Track: AnimationTrack } = self.Animations[AnimationName]
+	local ViewModel = self.ViewModel
+	local Animation = ViewModel:GetAnimation(AnimationName)
 
-	if Animation and CombatSystem.CurrentWeapon == self then
-		local Track: AnimationTrack = Animation.Track
+	if Animation then
+		ViewModel:PlayAnimation(Animation)
 
-		if CheckIfRunning == true then
-			if Animation.Running then
-				return
-			end
-		else
-			print("Playing", Animation)
-		end
-
-		Animation.Running = true
-		Track:Play()
 		if not ClientOnly then
 			WeaponsService:PlayAnimation(self.Tool, AnimationName)
 		end
 
-		return Animation.Track
-	else
-		print("nah fam")
+		return Animation
 	end
 end
 
@@ -186,14 +176,14 @@ end
 
 -- stop anim
 function CBaseWeapon:StopAnimation(AnimationName: string, Loop: boolean, ClientOnly: boolean)
-	local Animation = self.Animations[AnimationName]
+	local ViewModel = self.ViewModel
+	local Animation = ViewModel:GetAnimation(AnimationName)
 
 	if Animation then
 		if not ClientOnly then
 			WeaponsService:StopAnimation(self.Tool, AnimationName)
 		end
-		Animation.Running = false
-		Animation.Track:Stop()
+		ViewModel:StopAnimation(Animation)
 	end
 end
 
@@ -220,6 +210,7 @@ function CBaseWeapon:PlaySound(SoundName: string)
 end
 
 function CBaseWeapon:Equip()
+	self.ViewModel:Mount()
 	local EquipAnim: AnimationTrack = self:PlayAnimation("Equip")
 	self:PlaySound("Equip")
 	WeaponsService:WeaponEquipped(self.Tool)
@@ -233,6 +224,7 @@ function CBaseWeapon:Dequip()
 	WeaponsService:WeaponUnequipped(self.Tool)
 	self:StopAnimations()
 	self:PlaySound("Dequip")
+	self.ViewModel:Unmount()
 end
 
 function CBaseWeapon:SetStat(Name: string, Value: any)
@@ -249,7 +241,10 @@ function CBaseWeapon:GetStat(Name: string)
 	return self.Tool:GetAttribute(Name)
 end
 
-function CBaseWeapon:Fire()
+function CBaseWeapon:Fire(PlayAnim: boolean)
+	if not PlayAnim then
+		PlayAnim = true
+	end
 	local IsReloading = self:GetStat("Reloading")
 
 	if IsReloading and self.Reloading then
@@ -258,7 +253,9 @@ function CBaseWeapon:Fire()
 
 	if self.Ammo >= 0 then
 		self.Firing = false
-		self:PlayAnimation(self:GetRandomAnim("Fire"))
+		if PlayAnim then
+			self:PlayAnimation(self:GetRandomAnim("Fire"))
+		end
 		self:PlaySound("Shoot")
 		task.spawn(function()
 			WeaponsService:FireWeapon(self.Tool, Mouse.Hit.Position)
