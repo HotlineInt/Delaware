@@ -21,6 +21,13 @@ local Footsteps = {
 
 function Footsteps:CreateSound(Character: Model)
 	local Sound = Instance.new("Sound")
+	local Humanoid = Character:WaitForChild("Humanoid")
+
+	-- this wouldnt work in the loop so im putting it here
+	if Humanoid.WalkSpeed == 0 then
+		return
+	end
+
 	Sound.Parent = Character.HumanoidRootPart
 	Sound.Volume = self.Volume
 
@@ -52,6 +59,7 @@ function Footsteps:OnCharacterAdded(Character: Model)
 		local FloorMaterial = Humanoid.FloorMaterial
 		local MaterialTable = FootstepModule:GetTableFromMaterial(FloorMaterial)
 
+		-- ! ugly code ahead
 		if MaterialTable and Humanoid.MoveDirection ~= Empty3 then
 			task.spawn(function()
 				local SoundId = FootstepModule:GetRandomSound(MaterialTable)
@@ -64,11 +72,13 @@ function Footsteps:OnCharacterAdded(Character: Model)
 
 				local Sound = self:CreateSound(Character)
 
-				Sound.SoundId = SoundId
-				LastSound = SoundId
-				Sound:Play()
-				Sound.Ended:Wait()
-				Sound:Destroy()
+				if Sound then
+					Sound.SoundId = SoundId
+					LastSound = SoundId
+					Sound:Play()
+					Sound.Ended:Wait()
+					Sound:Destroy()
+				end
 			end)
 
 			task.wait(self.Delay)
