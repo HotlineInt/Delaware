@@ -15,20 +15,22 @@ local Assets = {
 	[0] = "rbxassetid://9739979823",
 }
 
-local Display: SegmentDisplay = { Size = 16, Spacing = 14 }
+local Display: SegmentDisplay = { Size = 35, Spacing = 14 }
 Display.__index = Display
 
 function Display.new()
 	return setmetatable({}, Display)
 end
-
 function Display:Render()
 	self.Display = CUI:CreateElement("Frame", {
+		Name = "Segmenter",
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 		[CUI.Children] = {
 			CUI:CreateElement("UIListLayout", {
 				Padding = UDim.new(0, 0),
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
 				FillDirection = Enum.FillDirection.Horizontal,
 			}),
 		},
