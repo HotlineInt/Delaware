@@ -11,6 +11,8 @@ local Player = Carbon:GetPlayer()
 local Nakonix = require(script.Nakonix)
 local Computer = Component.new({ Tag = "Computers" })
 
+local MouseBehaviour = require(script.Parent.Parent.Parent.System.MouseBehaviour)
+
 function Computer:Construct()
 	local Model = self.Instance
 	local Monitor = Model:WaitForChild("Screen")
@@ -60,6 +62,7 @@ function Computer:Enter(Player: Player)
 	Camera.CameraType = Enum.CameraType.Scriptable
 	self.ViewTween:Play()
 	UserInputService.MouseIconEnabled = true
+	MouseBehaviour:AddMenu("MENU_PC")
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 end
 
@@ -68,6 +71,7 @@ function Computer:Exit()
 	self.Prompt.Enabled = true
 	Camera.CameraType = Enum.CameraType.Custom
 	UserInputService.MouseIconEnabled = false
+	MouseBehaviour:RemoveMenu("MENU_PC")
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
 end
 
