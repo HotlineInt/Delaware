@@ -22,6 +22,8 @@ local DamageIndicator = require(script.DamageIndicator)
 local HitIndicator = require(script.HitIndicator)
 local EffectsHandler = require(script.EffectsHandler)
 
+local UserState = require(script.Parent.Parent.UserState)
+local UserStateEnum = require(script.Parent.Parent.UserState.StateEnum)
 local CrossHair = require(script.Crosshair)
 
 -- todo: use this someday
@@ -43,6 +45,7 @@ local CombatSys = {
 	Crosshair = nil,
 	LoadedTools = {},
 	TimeSinceLastFire = 0,
+	Locked = false,
 	States = {
 		ShouldUpdate = false,
 		ShouldFire = false,
@@ -78,6 +81,17 @@ function CombatSys:Load()
 		ViewModels.ChildAdded:Connect(function(ViewModel)
 			self:ProcessVM(ViewModel)
 		end)
+	end)
+
+	-- Lock weaponary because its just clutter
+	UserState:ListenSignalA(function(State: string)
+		print(State)
+		if State ~= UserStateEnum.NORMAL then
+			print("Locking")
+			self:Lock()
+		else
+			self:Unlock()
+		end
 	end)
 
 	self.Janitor = Janitor.new()
@@ -129,6 +143,33 @@ function CombatSys:Load()
 	-- end)
 end
 
+-- Unequips whatever tool we may have and locks the system.
+function CombatSys:Lock()
+	if self.Locked == true then
+		warn("COMBATSYS: Already locked")
+		return
+	end
+
+	self.Locked = true
+
+	local CurrentWeapon = self.CurrentWeapon
+
+	if CurrentWeapon then
+		self:DequipWeapon()
+		Player.Character.Humanoid:UnequipTools()
+	end
+end
+
+-- Unlocks the system. Does not re-equip the tool we had before lock.
+function CombatSys:Unlock()
+	if self.Locked == false then
+		warn("COMBATSYS: Already unlocked")
+		return
+	end
+
+	self.Locked = false
+end
+
 function CombatSys:ProcessVM(ViewModel: Model)
 	warn(string.format("Processing %s", ViewModel.Name))
 	for _, Part in pairs(ViewModel:GetDescendants()) do
@@ -144,6 +185,7 @@ end
 
 function CombatSys:OnCharacterAdded(Character: Model)
 	print("Character creating..")
+	self.Character = Character
 	self.Janitor:Cleanup()
 	DamageIndicator:Reset()
 
@@ -196,6 +238,10 @@ function CombatSys:OnCharacterAdded(Character: Model)
 	self.States.CanEquip = true
 end
 
+function CombatSys:GetCharacter()
+	return self.Character
+end
+
 function CombatSys:_CreateTool(Tool: Tool)
 	-- verify the weapon is valid
 	if not Tool:IsA("Tool") then
@@ -224,10 +270,15 @@ function CombatSys:_CreateTool(Tool: Tool)
 end
 
 function CombatSys:HandleAction(ActionName: string, InputState, InputObject: InputObject)
-	if not self.CurrentWeapon then
+	if not self:IsWeaponEquipped() then
 		return
 	end
-	local Weapon = self.CurrentWeapon
+
+	if self:IsLocked() then
+		return
+	end
+
+	local Weapon = self:GetCurrentWeapon()
 
 	print(ActionName, InputState)
 	if ActionName == "Update" and InputState == Enum.UserInputState.End then
@@ -288,7 +339,7 @@ function CombatSys:AddWeapon(Tool: Tool): Weapon
 
 	-- create weapon
 	local Weapon = WeaponModule.new(Tool)
-	local MountPoint = Weapon.ViewModel:FindFirstChild("AmmoCounter")
+	local MountPoint = Weapon.ViewModel.Model:FindFirstChild("AmmoCounter")
 	local Hud = WeapoNHud.new(MountPoint)
 	Weapon.HUD = Hud
 	Hud:SetStats(Weapon.Ammo, Weapon.MaxAmmo)
@@ -328,31 +379,55 @@ function CombatSys:SetWeaponReady(Toggle: boolean)
 	self.States.WeaponReady = Toggle
 end
 
+function CombatSys:IsWeaponEquipped()
+	return self.CurrentWeapon ~= nil
+end
+
+function CombatSys:GetCurrentWeapon()
+	return self.CurrentWeapon
+end
+
+function CombatSys:SetCurrentWeapon(Weapon: Weapon)
+	if self:GetCurrentWeapon() == Weapon then
+		warn("Weapon is already equipped")
+		return
+	end
+
+	self.CurrentWeapon = Weapon
+end
+
 -- playanimation/stopanimation wrappers
 -- because im too lazy
 function CombatSys:PlayAnimation(AnimationName: string, Loop: boolean, ClientOnly: boolean, CheckIfRunning: boolean)
-	if self.CurrentWeapon == nil then
+	if not self:IsWeaponEquipped() then
 		return
 	end
 
-	self.CurrentWeapon:PlayAnimation(AnimationName, Loop, ClientOnly, CheckIfRunning)
+	local Weapon = self:GetCurrentWeapon()
+
+	Weapon:PlayAnimation(AnimationName, Loop, ClientOnly, CheckIfRunning)
+end
+
+function CombatSys:IsLocked()
+	return self.Locked
 end
 
 function CombatSys:StopAnimation(AnimationName: string, Loop: boolean, ClientOnly: boolean, CheckIfRunning: boolean)
-	if self.CurrentWeapon == nil then
+	if not self:IsWeaponEquipped() then
 		return
 	end
 
-	self.CurrentWeapon:StopAnimation(AnimationName, Loop, ClientOnly, CheckIfRunning)
+	local Weapon = self:GetCurrentWeapon()
+
+	Weapon:StopAnimation(AnimationName, Loop, ClientOnly, CheckIfRunning)
 end
 
 function CombatSys:SetStat(StatName: string, Value: any): nil
-	if not self.CurrentWeapon then
-		error("Can't do this with no CurrentWeapon")
+	if not self:IsWeaponEquipped() then
 		return
 	end
-
-	return self.CurrentWeapon:SetStat(StatName, Value)
+	local Weapon = self:GetCurrentWeapon()
+	return Weapon:SetStat(StatName, Value)
 end
 
 function CombatSys:FireWeapon()
@@ -361,12 +436,19 @@ function CombatSys:FireWeapon()
 		return
 	end
 
-	-- get current weapon
-	local CurrentWeapon = self.CurrentWeapon
-
-	if CurrentWeapon == nil then
+	-- check if we're locked
+	if self:IsLocked() then
+		warn("Cannot fire while locked")
 		return
 	end
+
+	-- get current weapon
+	if not self:IsWeaponEquipped() then
+		warn("Cannot fire without a weapon")
+		return
+	end
+
+	local CurrentWeapon = self:GetCurrentWeapon()
 
 	-- get current weapon's firemode
 	local CurrentAmmo = self:GetStat("Ammo")
@@ -403,6 +485,13 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 		return
 	end
 
+	-- check if we're locked
+	if self:IsLocked() then
+		self:GetCharacter().Humanoid:UnequipTools()
+		warn("Cannot equip while locked")
+		return
+	end
+
 	self.Crosshair:SetProperty("Enabled", true)
 	self.States.ShouldFire = false
 	self.States.ShouldUpdate = false
@@ -411,12 +500,12 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 
 	-- Check if given weapon is not self.CurrentWeapon
 
-	if self.CurrentWeapon == Weapon then
+	if self:GetCurrentWeapon() == Weapon then
 		error("Cannot equip the current weapon")
 		return
 	end
 
-	if self.CurrentWeapon then
+	if self:IsWeaponEquipped() then
 		-- Dequip the current weapon
 		warn("Dequipping existing weapon")
 		self:DequipWeapon()
@@ -425,18 +514,25 @@ function CombatSys:EquipWeapon(Weapon: Weapon)
 	local ViewModel = Weapon.ViewModel
 	ViewModel.Parent = Camera
 	self.States.ShouldUpdate = true
-	self.CurrentWeapon = Weapon
+	self:SetCurrentWeapon(Weapon)
 
 	Weapon:Equip()
 	self:SetWeaponReady(true)
 end
 
 function CombatSys:ReloadWeapon()
-	local CurrentWeapon = self.CurrentWeapon
-	if not CurrentWeapon then
+	if not self:IsWeaponEquipped() then
 		error("Cannot reload with no current weapon equipped!")
 		return
 	end
+
+	-- check if we're locked
+	if self:IsLocked() then
+		warn("Cannot reload while locked")
+		return
+	end
+
+	local CurrentWeapon = self:GetCurrentWeapon()
 
 	local HUD = CurrentWeapon.HUD
 	-- get state
@@ -463,11 +559,13 @@ function CombatSys:DequipWeapon()
 		warn("You cannot deequip right now.")
 		return
 	end
+
 	-- Check if there's an current weapon available
-	if not self.CurrentWeapon then
+	if not self:IsWeaponEquipped() then
 		warn("Cannot dequip with no weapon equipped")
 		return
 	end
+	local Weapon = self:GetCurrentWeapon()
 
 	self.Crosshair:SetProperty("Enabled", false)
 	self:SetWeaponReady(false)
@@ -476,23 +574,24 @@ function CombatSys:DequipWeapon()
 	self.States.ShouldUpdate = false
 
 	-- Dequip the weapon
-	self.CurrentWeapon.ViewModel.Parent = nil
+	Weapon.ViewModel.Parent = nil
 	-- Cleanup
-	self.CurrentWeapon:Dequip()
+	Weapon:Dequip()
 
 	self.States.ShouldUpdate = false
-	self.CurrentWeapon = nil
+	self:SetCurrentWeapon(nil)
 end
 
 function CombatSys:Update(DeltaTime: number)
-	local CurrentWeapon: Weapon = self.CurrentWeapon
-	if not CurrentWeapon then
+	if not self:IsWeaponEquipped() then
 		return
 	end
 
+	local CurrentWeapon: Weapon = self:GetCurrentWeapon()
+
 	if self.States.ShouldUpdate then
 		local MouseDelta = UserInputService:GetMouseDelta()
-		local ViewModel: Model = CurrentWeapon.ViewModel
+		local ViewModel: Model = CurrentWeapon.ViewModel.Model
 		local Sway = CurrentWeapon.Springs.Sway:Update(DeltaTime)
 		CurrentWeapon.Springs.Sway:Shove(Vector3.new(MouseDelta.X / 200, MouseDelta.Y / 200))
 		local Recoil = CurrentWeapon.Springs.Recoil:Update(DeltaTime)
